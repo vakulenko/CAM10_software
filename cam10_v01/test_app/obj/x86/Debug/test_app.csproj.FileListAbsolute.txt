@@ -1,0 +1,5 @@
+C:\share\dev\cam10_v01\test_app\bin\Debug\test_app.exe
+C:\share\dev\cam10_v01\test_app\bin\Debug\test_app.pdb
+C:\share\dev\cam10_v01\test_app\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\share\dev\cam10_v01\test_app\obj\x86\Debug\test_app.exe
+C:\share\dev\cam10_v01\test_app\obj\x86\Debug\test_app.pdb

@@ -1,0 +1,5 @@
+C:\share\dev\cam10_v01\ConsoleApplication1\obj\x86\Release\ResolveAssemblyReference.cache
+C:\share\dev\cam10_v01\ConsoleApplication1\bin\Release\ConsoleApplication1.exe
+C:\share\dev\cam10_v01\ConsoleApplication1\bin\Release\ConsoleApplication1.pdb
+C:\share\dev\cam10_v01\ConsoleApplication1\obj\x86\Release\ConsoleApplication1.exe
+C:\share\dev\cam10_v01\ConsoleApplication1\obj\x86\Release\ConsoleApplication1.pdb
