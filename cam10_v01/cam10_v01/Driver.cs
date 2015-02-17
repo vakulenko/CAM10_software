@@ -51,7 +51,7 @@ namespace ASCOM.cam10_v01
     }
 
     public class Camera : ICameraV2
-    {
+    { 
         /// <summary>
         /// ASCOM DeviceID (COM ProgID) for this driver.
         /// The DeviceID is used by ASCOM applications to load the driver at runtime.
@@ -207,29 +207,19 @@ namespace ASCOM.cam10_v01
 
         public void CommandBlind(string command, bool raw)
         {
-            CheckConnected("CommandBlind");
-            // Call CommandString and return as soon as it finishes
-            this.CommandString(command, raw);
-            // or
+            tl.LogMessage("CommandBlind", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("CommandBlind");
         }
 
         public bool CommandBool(string command, bool raw)
         {
-            CheckConnected("CommandBool");
-            string ret = CommandString(command, raw);
-            // TODO decode the return string and return true or false
-            // or
+            tl.LogMessage("CommandBool", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("CommandBool");
         }
 
         public string CommandString(string command, bool raw)
         {
-            CheckConnected("CommandString");
-            // it's a good idea to put all the low level communication with the device here,
-            // then all communication calls this function
-            // you need something to ensure that only one command is in progress at a time
-
+            tl.LogMessage("CommandString", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("CommandString");
         }
 
@@ -280,7 +270,6 @@ namespace ASCOM.cam10_v01
 
         public string Description
         {
-            // TODO customise this device description
             get
             {
                 tl.LogMessage("Description Get", driverDescription);
@@ -292,8 +281,7 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                // TODO customise this driver description
+                Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;                
                 string driverInfo = "Information about the driver itself. Version: " + String.Format(CultureInfo.InvariantCulture, "{0}.{1}", version.Major, version.Minor);
                 tl.LogMessage("DriverInfo Get", driverInfo);
                 return driverInfo;
@@ -325,7 +313,7 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                string name = "Short driver name - please customise";
+                string name = "cam10";
                 tl.LogMessage("Name Get", name);
                 return name;
             }
@@ -335,11 +323,14 @@ namespace ASCOM.cam10_v01
 
         #region ICamera Implementation
 
-        private const int ccdWidth = 1280; // Constants to define the ccd pixel dimenstions
+        // Constants to define the ccd pixel dimenstions
+        private const int ccdWidth = 1280; 
         private const int ccdHeight = 1024;
-        private const double pixelSize = 5.2; // Constant for the pixel physical dimension
+        // Constant for the pixel physical dimension um
+        private const double pixelSize = 5.2;
 
-        private int cameraNumX = ccdWidth; // Initialise variables to hold values required for functionality tested by Conform
+        // Initialise variables to hold values required for functionality tested by Conform
+        private int cameraNumX = ccdWidth; 
         private int cameraNumY = ccdHeight;
         private int cameraStartX = 0;
         private int cameraStartY = 0;
@@ -347,7 +338,6 @@ namespace ASCOM.cam10_v01
         private double cameraLastExposureDuration = 0.0;
         private bool cameraImageReady = false;
         private int[,] cameraImageArray;
-        private object[,] cameraImageArrayVariant;
 
         public void AbortExposure()
         {
@@ -383,7 +373,8 @@ namespace ASCOM.cam10_v01
             set
             {
                 tl.LogMessage("BinX Set", value.ToString());
-                if (value != 1) throw new ASCOM.InvalidValueException("BinX", value.ToString(), "1"); // Only 1 is valid in this simple template
+                // Only 1 is valid
+                if (value != 1) throw new ASCOM.InvalidValueException("BinX", value.ToString(), "1"); 
             }
         }
 
@@ -397,7 +388,8 @@ namespace ASCOM.cam10_v01
             set
             {
                 tl.LogMessage("BinY Set", value.ToString());
-                if (value != 1) throw new ASCOM.InvalidValueException("BinY", value.ToString(), "1"); // Only 1 is valid in this simple template
+                // Only 1 is valid
+                if (value != 1) throw new ASCOM.InvalidValueException("BinY", value.ToString(), "1"); 
             }
         }
 
@@ -414,6 +406,42 @@ namespace ASCOM.cam10_v01
         {
             get
             {
+                /*
+                switch ((short)CameraGetCameraState())
+                {
+                    case 0:
+                        {
+                            tl.LogMessage("CameraState Get", CameraStates.cameraIdle.ToString());
+                            return CameraStates.cameraIdle;
+                        }
+                    case 1:
+                        {
+                            tl.LogMessage("CameraState Get", CameraStates.cameraWaiting.ToString());
+                            return CameraStates.cameraWaiting;
+                        }
+                    case 2:
+                        {
+                            tl.LogMessage("CameraState Get", CameraStates.cameraExposing.ToString());
+                            return CameraStates.cameraExposing;
+                        }
+                    case 3:
+                        {
+                            tl.LogMessage("CameraState Get", CameraStates.cameraReading.ToString());
+                            return CameraStates.cameraReading;
+                        }
+                    case 4:
+                        {
+                            tl.LogMessage("CameraState Get", CameraStates.cameraDownload.ToString());
+                            return CameraStates.cameraDownload;
+                        }
+                    default:
+                        {
+                            tl.LogMessage("CameraState Get", CameraStates.cameraError.ToString());
+                            return CameraStates.cameraError;
+                        }
+                }
+                */
+                
                 tl.LogMessage("CameraState Get", CameraStates.cameraIdle.ToString());
                 return CameraStates.cameraIdle;
             }
@@ -536,8 +564,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("ExposureMax Get Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("ExposureMax", false);
+                tl.LogMessage("ExposureMax Get Get", "2.0");
+                return 2.0;
             }
         }
 
@@ -545,8 +573,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("ExposureMin Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("ExposureMin", false);
+                tl.LogMessage("ExposureMin Get", "0.001");
+                return 0.0;
             }
         }
 
@@ -554,8 +582,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("ExposureResolution Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("ExposureResolution", false);
+                tl.LogMessage("ExposureResolution Get", "0.001");
+                return 0.001;
             }
         }
 
@@ -665,17 +693,7 @@ namespace ASCOM.cam10_v01
                     tl.LogMessage("ImageArrayVariant Get", "Throwing InvalidOperationException because of a call to ImageArrayVariant before the first image has been taken!");
                     throw new ASCOM.InvalidOperationException("Call to ImageArrayVariant before the first image has been taken!");
                 }
-                cameraImageArrayVariant = new object[cameraNumX, cameraNumY];
-                for (int i = 0; i < cameraImageArray.GetLength(1); i++)
-                {
-                    for (int j = 0; j < cameraImageArray.GetLength(0); j++)
-                    {
-                        cameraImageArrayVariant[j, i] = cameraImageArray[j, i];
-                    }
-
-                }
-
-                return cameraImageArrayVariant;
+                return this.ImageArray;
             }
         }
 
@@ -730,8 +748,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("MaxADU Get", "20000");
-                return 20000;
+                tl.LogMessage("MaxADU Get", "255");
+                return 255;
             }
         }
 
@@ -841,8 +859,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("SensorName Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SensorName", false);
+                tl.LogMessage("SensorName Get", "MT9M001C12STM");
+                return "MT9M001C12STM";
             }
         }
 
@@ -850,8 +868,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("SensorType Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SensorType", false);
+                tl.LogMessage("SensorType Get", "SensorType.Monochrome");
+                return SensorType.Monochrome;
             }
         }
 
