@@ -42,11 +42,13 @@ namespace ASCOM.cam10_v01
     {
         public short gain;
         public short offset;
+        public short blevel;
 
         public iniSettingsClass()
         {
             gain = 0;
             offset = 0;
+            blevel = 0;
         }
     }
 
@@ -69,12 +71,12 @@ namespace ASCOM.cam10_v01
         /// <summary>
         /// Form, handle gain/offset settings
         /// </summary>
-        private cam_settings settings_form;
+        private camSettings settingsForm;
 
         /// <summary>
         /// FilePath to settings XML (save gain/offset value)
         /// </summary>
-        private string SettingFilePath;
+        private string settingFilePath;
 
         /// <summary>
         /// Private variable to hold the connected state
@@ -122,8 +124,8 @@ namespace ASCOM.cam10_v01
             ReadProfile();
             //Get path to Common Files directory
             string arch = System.Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE").ToString();
-            if (arch.IndexOf("86") != -1) SettingFilePath = Environment.ExpandEnvironmentVariables("%CommonProgramFiles%\\ASCOM\\Camera\\cam10\\cam10_settings.xml");
-            else SettingFilePath = Environment.ExpandEnvironmentVariables("%CommonProgramFiles(x86)%\\ASCOM\\Camera\\cam10\\cam10_settings.xml");
+            if (arch.IndexOf("86") != -1) settingFilePath = Environment.ExpandEnvironmentVariables("%CommonProgramFiles%\\ASCOM\\Camera\\cam10\\cam10_settings.xml");
+            else settingFilePath = Environment.ExpandEnvironmentVariables("%CommonProgramFiles(x86)%\\ASCOM\\Camera\\cam10\\cam10_settings.xml");
             //Init debug logger
             tl = new TraceLogger("", "cam10_v01");
             tl.Enabled = traceState;
@@ -135,26 +137,29 @@ namespace ASCOM.cam10_v01
             // Initialise astro utilities object
             astroUtilities = new AstroUtils(); 
             //New form for gain/offset settings
-            settings_form = new cam_settings();
+            settingsForm = new camSettings();
             //extract gain, offset settings
-            tl.LogMessage("Camera", "Read " + SettingFilePath);
-            if (File.Exists(SettingFilePath))
+            tl.LogMessage("Camera", "Read " + settingFilePath);
+            if (File.Exists(settingFilePath))
             {
                 try
                 {
-                    using (Stream stream = new FileStream(SettingFilePath, FileMode.Open))
+                    using (Stream stream = new FileStream(settingFilePath, FileMode.Open))
                     {
                         XmlSerializer serializer = new XmlSerializer(typeof(iniSettingsClass));
 
                         iniSettingsClass iniSettings = (iniSettingsClass)serializer.Deserialize(stream);
-                        settings_form.gain = iniSettings.gain;
-                        settings_form.offset = iniSettings.offset;
+                        settingsForm.gain = iniSettings.gain;
+                        settingsForm.offset = iniSettings.offset;
+                        settingsForm.blevel = iniSettings.blevel;
+                        
                     }
                 }
                 catch
                 {                    
-                    settings_form.gain = 0;
-                    settings_form.offset = 0;
+                    settingsForm.gain = 0;
+                    settingsForm.offset = 0;
+                    settingsForm.blevel = 0;
                 }
             }
             tl.LogMessage("Camera", "Completed initialisation");
@@ -233,7 +238,7 @@ namespace ASCOM.cam10_v01
             utilities = null;
             astroUtilities.Dispose();
             astroUtilities = null;
-            settings_form.Dispose();
+            settingsForm.Dispose();
         }
 
         public bool Connected
@@ -253,7 +258,7 @@ namespace ASCOM.cam10_v01
                 {
                     connectedState = true;
                     //show cam10_settings form
-                    settings_form.Show();
+                    settingsForm.Show();
                     tl.LogMessage("Connected Set", "Connecting to camera ");
                     // TODO connect to the device
                 }
@@ -261,7 +266,7 @@ namespace ASCOM.cam10_v01
                 {
                     connectedState = false;
                     //hide cam10_settings form
-                    settings_form.Hide();
+                    settingsForm.Hide();
                     tl.LogMessage("Connected Set", "Disconnecting from camera ");
                     // TODO disconnect from the device
                 }
@@ -898,9 +903,10 @@ namespace ASCOM.cam10_v01
             //save gain, offset settings
             tl.LogMessage("StartExposure", "Saving gain/offset value ");
             iniSettingsClass iniSettings = new iniSettingsClass();
-            iniSettings.gain = settings_form.gain;
-            iniSettings.offset = settings_form.offset;                
-            using (Stream writer = new FileStream(SettingFilePath, FileMode.Create))
+            iniSettings.gain = settingsForm.gain;
+            iniSettings.offset = settingsForm.offset;
+            iniSettings.blevel = settingsForm.blevel;  
+            using (Stream writer = new FileStream(settingFilePath, FileMode.Create))
             {
                 XmlSerializer serializer = new XmlSerializer(typeof(iniSettingsClass));
                 serializer.Serialize(writer, iniSettings);

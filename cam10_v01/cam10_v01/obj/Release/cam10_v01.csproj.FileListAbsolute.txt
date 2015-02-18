@@ -12,4 +12,4 @@ C:\share\dev\cam10_v01\cam10_v01\obj\Release\GenerateResource-ResGen.read.1.tlog
 C:\share\dev\cam10_v01\cam10_v01\obj\Release\GenerateResource-ResGen.write.1.tlog
 C:\share\dev\cam10_v01\cam10_v01\bin\Release\FTD2XX_NET.dll
 C:\share\dev\cam10_v01\cam10_v01\bin\Release\FTD2XX_NET.xml
-C:\share\dev\cam10_v01\cam10_v01\obj\Release\ASCOM.cam10_v01.cam_settings.resources
+C:\share\dev\cam10_v01\cam10_v01\obj\Release\ASCOM.cam10_v01.camSettings.resources
