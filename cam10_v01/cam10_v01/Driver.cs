@@ -100,19 +100,19 @@ namespace ASCOM.cam10_v01
 
         //Imports cam10ll01.dll functions
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-        static extern bool CameraConnect();
+        static extern bool cameraConnect();
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-        static extern bool CameraIsConnected();
+        static extern bool cameraDisconnect();
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-        static extern bool CameraDisconnect();
+        static extern bool cameraIsConnected();
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-        static extern bool CameraStartExposure(int Bin, int StartX, int StartY, int NumX, int NumY, double Duration, bool light, int gain, int offset);
+        static extern bool cameraStartExposure(int Bin, int StartX, int StartY, int NumX, int NumY, double Duration, bool light, int gain, int offset, int blevel);
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-        static extern int CameraGetCameraState();
+        static extern int cameraGetCameraState();
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-        static extern bool CameraGetImageReady();
+        static extern bool cameraGetImageReady();
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-        static extern uint CameraGetImage();
+        static extern uint cameraGetImage();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="cam10_v01"/> class.
@@ -151,8 +151,7 @@ namespace ASCOM.cam10_v01
                         iniSettingsClass iniSettings = (iniSettingsClass)serializer.Deserialize(stream);
                         settingsForm.gain = iniSettings.gain;
                         settingsForm.offset = iniSettings.offset;
-                        settingsForm.blevel = iniSettings.blevel;
-                        
+                        settingsForm.blevel = iniSettings.blevel;                        
                     }
                 }
                 catch
@@ -256,19 +255,21 @@ namespace ASCOM.cam10_v01
 
                 if (value)
                 {
+                    tl.LogMessage("Connected Set", "Connecting to camera, call cameraConnect from cam10ll01.dll");
+                    if (cameraConnect() == false) throw new ASCOM.NotConnectedException("Cant connect to cam10");
                     connectedState = true;
-                    //show cam10_settings form
-                    settingsForm.Show();
-                    tl.LogMessage("Connected Set", "Connecting to camera ");
-                    // TODO connect to the device
+                    tl.LogMessage("Connected Set", "connectedState=true");
+                    //show cam10 settings form
+                    settingsForm.Show();                   
                 }
                 else
                 {
+                    tl.LogMessage("Connected Set", "Disconnecting from camera, call cameraConnect from cam10ll01.dll");
+                    if (cameraDisconnect() == false) throw new ASCOM.NotConnectedException("Cant disconnect cam10");
                     connectedState = false;
-                    //hide cam10_settings form
+                    tl.LogMessage("Connected Set", "connectedState=false");
+                    //hide cam10 settings form
                     settingsForm.Hide();
-                    tl.LogMessage("Connected Set", "Disconnecting from camera ");
-                    // TODO disconnect from the device
                 }
             }
         }
@@ -339,10 +340,13 @@ namespace ASCOM.cam10_v01
         private int cameraNumY = ccdHeight;
         private int cameraStartX = 0;
         private int cameraStartY = 0;
+        private short cameraBinX = 1;
+        private short cameraBinY = 1;
         private DateTime exposureStart = DateTime.MinValue;
         private double cameraLastExposureDuration = 0.0;
+
         private bool cameraImageReady = false;
-        private int[,] cameraImageArray;
+        private Array cameraImageArray;
 
         public void AbortExposure()
         {
@@ -372,14 +376,17 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("BinX Get", "1");
-                return 1;
+                tl.LogMessage("BinX Get", cameraBinX.ToString());
+                return cameraBinX;
             }
             set
             {
-                tl.LogMessage("BinX Set", value.ToString());
-                // Only 1 is valid
-                if (value != 1) throw new ASCOM.InvalidValueException("BinX", value.ToString(), "1"); 
+                tl.LogMessage("BinX Set", value.ToString()); 
+                if ((value < 1)||(value>this.MaxBinX)) throw new ASCOM.InvalidValueException("BinX", value.ToString(), "BinX must be in range [1;MaxBinX]");
+                tl.LogMessage("BinX Set", "Check complete"); 
+                cameraStartX=(cameraStartX * cameraBinX) / value;
+                cameraNumX = (cameraNumX * cameraBinX) / value;
+                cameraBinX = cameraBinY = value;
             }
         }
 
@@ -387,14 +394,17 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("BinY Get", "1");
-                return 1;
+                tl.LogMessage("BinY Get", cameraBinY.ToString());
+                return cameraBinY;
             }
             set
             {
-                tl.LogMessage("BinY Set", value.ToString());
-                // Only 1 is valid
-                if (value != 1) throw new ASCOM.InvalidValueException("BinY", value.ToString(), "1"); 
+                tl.LogMessage("BinY Set", value.ToString());                
+                if ((value < 1)||(value>this.MaxBinY)) throw new ASCOM.InvalidValueException("BinY", value.ToString(), "BinY must be in range [1;MaxBinY]");
+                tl.LogMessage("BinY Set", "Check complete"); 
+                cameraStartY = (cameraStartY * cameraBinY) / value;
+                cameraNumY = (cameraNumY * cameraBinY) / value;
+                cameraBinY = cameraBinX = value;
             }
         }
 
@@ -411,8 +421,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                /*
-                switch ((short)CameraGetCameraState())
+                tl.LogMessage("CameraState Get", "Call cameraGetCameraState from cam10ll01.dll");
+                switch ((short)cameraGetCameraState())
                 {
                     case 0:
                         {
@@ -444,11 +454,7 @@ namespace ASCOM.cam10_v01
                             tl.LogMessage("CameraState Get", CameraStates.cameraError.ToString());
                             return CameraStates.cameraError;
                         }
-                }
-                */
-                
-                tl.LogMessage("CameraState Get", CameraStates.cameraIdle.ToString());
-                return CameraStates.cameraIdle;
+                }                                
             }
         }
 
@@ -684,7 +690,28 @@ namespace ASCOM.cam10_v01
                     throw new ASCOM.InvalidOperationException("Call to ImageArray before the first image has been taken!");
                 }
 
-                cameraImageArray = new int[cameraNumX, cameraNumY];
+                uint imagepoint;
+                //Get image pointer
+                tl.LogMessage("ImageArray Get", "Call cameraGetImage from cam10ll01.dll");
+                imagepoint = cameraGetImage();
+                unsafe
+                {
+                    ushort* zeropixelpoint, pixelpoint;
+                    //Set pixelpointers
+                    zeropixelpoint = pixelpoint = (ushort*)imagepoint;
+                    //Create image array
+                    cameraImageArray = Array.CreateInstance(typeof(int), cameraNumX * cameraNumY);
+                    int i, j, k = 0;                                      
+
+                    for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
+                        for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
+                        {
+                            pixelpoint = (ushort*)(zeropixelpoint + (i * ccdHeight + j));
+                            cameraImageArray.SetValue(*pixelpoint, k);
+                            k++;
+                        }
+                }
+                                   
                 return cameraImageArray;
             }
         }
@@ -698,6 +725,7 @@ namespace ASCOM.cam10_v01
                     tl.LogMessage("ImageArrayVariant Get", "Throwing InvalidOperationException because of a call to ImageArrayVariant before the first image has been taken!");
                     throw new ASCOM.InvalidOperationException("Call to ImageArrayVariant before the first image has been taken!");
                 }
+                tl.LogMessage("ImageArrayVariant Get", "Call ImageArray method");
                 return this.ImageArray;
             }
         }
@@ -706,6 +734,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
+                tl.LogMessage("ImageReady Get", "Call cameraGetImageReady from cam10ll01.dll");
+                cameraImageReady = cameraGetImageReady();
                 tl.LogMessage("ImageReady Get", cameraImageReady.ToString());
                 return cameraImageReady;
             }
@@ -785,8 +815,11 @@ namespace ASCOM.cam10_v01
             }
             set
             {
-                cameraNumX = value;
                 tl.LogMessage("NumX set", value.ToString());
+                if ((value < 1) || (value > (ccdWidth / cameraBinX))) throw new InvalidValueException("NumX Set", value.ToString(), "NumX must be in range [1;ccdWidth/cameraBinX]");
+                tl.LogMessage("NumX set", "Check completed");
+                cameraNumX = value;
+                
             }
         }
 
@@ -799,8 +832,10 @@ namespace ASCOM.cam10_v01
             }
             set
             {
-                cameraNumY = value;
                 tl.LogMessage("NumY set", value.ToString());
+                if ((value < 1) || (value > (ccdHeight / cameraBinY))) throw new InvalidValueException("NumY Set", value.ToString(), "NumY must be in range [1;ccdHeight/cameraBinY]");
+                tl.LogMessage("NumY set", "Check completed");
+                cameraNumY = value;
             }
         }
 
@@ -894,14 +929,14 @@ namespace ASCOM.cam10_v01
 
         public void StartExposure(double Duration, bool Light)
         {
-            if (Duration < 0.0) throw new InvalidValueException("StartExposure", Duration.ToString(), "0.0 upwards");
-            if (cameraNumX > ccdWidth) throw new InvalidValueException("StartExposure", cameraNumX.ToString(), ccdWidth.ToString());
-            if (cameraNumY > ccdHeight) throw new InvalidValueException("StartExposure", cameraNumY.ToString(), ccdHeight.ToString());
-            if (cameraStartX > ccdWidth) throw new InvalidValueException("StartExposure", cameraStartX.ToString(), ccdWidth.ToString());
-            if (cameraStartY > ccdHeight) throw new InvalidValueException("StartExposure", cameraStartY.ToString(), ccdHeight.ToString());
-
+            //check exposure parameters
+            tl.LogMessage("StartExposure", "Start check");
+            if ((Duration < ExposureMin)||(Duration > ExposureMax) ) throw new InvalidValueException("StartExposure", Duration.ToString(), "Duration must be in range [0.0;2.0]sec");
+            if ((cameraStartX + cameraNumX) > (ccdWidth / cameraBinX)) throw new InvalidValueException("StartExposure", (cameraStartX + cameraNumX).ToString(), "(cameraStartX + cameraNumX) must be < ccdWidth / cameraBinX");
+            if ((cameraStartY + cameraNumY) > (ccdHeight / cameraBinY)) throw new InvalidValueException("StartExposure", (cameraStartY + cameraNumY).ToString(), "(cameraStartY + cameraNumY) must be < ccdHeight / cameraBinY");
             //save gain, offset settings
-            tl.LogMessage("StartExposure", "Saving gain/offset value ");
+            tl.LogMessage("StartExposure", "Check complete");
+            tl.LogMessage("StartExposure", "Saving gain/offset value");
             iniSettingsClass iniSettings = new iniSettingsClass();
             iniSettings.gain = settingsForm.gain;
             iniSettings.offset = settingsForm.offset;
@@ -911,12 +946,24 @@ namespace ASCOM.cam10_v01
                 XmlSerializer serializer = new XmlSerializer(typeof(iniSettingsClass));
                 serializer.Serialize(writer, iniSettings);
             }
-
+            //Save parameters
             cameraLastExposureDuration = Duration;
             exposureStart = DateTime.Now;
+            ////temp delay
             System.Threading.Thread.Sleep((int)Duration * 1000);  // Sleep for the duration to simulate exposure 
-            tl.LogMessage("StartExposure", Duration.ToString() + " " + Light.ToString());
-            cameraImageReady = true;
+            //start exposure
+            tl.LogMessage("StartExposure", "Call cameraStartExposure from cam10ll01.dll, args: ");
+            tl.LogMessage("StartExposure",  " Bin="+1.ToString() +
+                                            " cameraStartX" + this.cameraStartX.ToString() + 
+                                            " cameraStartY" + this.cameraStartY.ToString() + 
+                                            " cameraNumX" + this.cameraNumX.ToString() + 
+                                            " cameraNumY" + this.cameraNumY.ToString() + 
+                                            " Duration" + Duration.ToString() + 
+                                            " Light" + Light.ToString()+ 
+                                            " gain" + settingsForm.gain.ToString() +
+                                            " offset" + settingsForm.offset.ToString() +
+                                            " blevel" + settingsForm.blevel.ToString());
+            cameraStartExposure(1, cameraStartX, cameraStartY, cameraNumX, cameraNumY, Duration, Light, settingsForm.gain, settingsForm.offset, settingsForm.blevel);
         }
 
         public int StartX
@@ -928,8 +975,10 @@ namespace ASCOM.cam10_v01
             }
             set
             {
-                cameraStartX = value;
                 tl.LogMessage("StartX Set", value.ToString());
+                if ((value < 0) || (value >= (ccdWidth / cameraBinX))) throw new InvalidValueException("StartX Set", value.ToString(), "StartX must be in range [0;ccdWidth/cameraBinX)");
+                tl.LogMessage("StartX Set", "Check complete");
+                cameraStartX = value;
             }
         }
 
@@ -942,8 +991,10 @@ namespace ASCOM.cam10_v01
             }
             set
             {
-                cameraStartY = value;
                 tl.LogMessage("StartY set", value.ToString());
+                if ((value < 0) || (value >= (ccdHeight / cameraBinY))) throw new InvalidValueException("StartY Set", value.ToString(), "StartY must be in range [0;ccdHeight/cameraBinY)");
+                tl.LogMessage("StartY Set", "Check complete");
+                cameraStartY = value;
             }
         }
 
@@ -1040,7 +1091,9 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                // TODO check that the driver hardware connection exists and is connected to the hardware
+                tl.LogMessage("IsConnected Get", "Call cameraIsConnected from cam10ll01.dll");
+                connectedState = cameraIsConnected();
+                tl.LogMessage("IsConnected Get", "connectedState=" + connectedState.ToString());
                 return connectedState;
             }
         }
