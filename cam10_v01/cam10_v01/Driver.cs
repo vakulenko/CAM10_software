@@ -139,7 +139,8 @@ namespace ASCOM.cam10_v01
             //New form for gain/offset settings
             settingsForm = new camSettings();
             //extract gain, offset settings
-            tl.LogMessage("Camera", "Read " + settingFilePath);
+            tl.LogMessage("Camera", "Reading gain/offset/blevel settings from file " + settingFilePath);
+            tl.LogMessage("Camera", "Also in Win with UAC check /Users/AppData/Local/VirtualStore/Program Files (x86)/Common Files/ASCOM/Camera/cam10/ dir");
             if (File.Exists(settingFilePath))
             {
                 try
@@ -161,6 +162,7 @@ namespace ASCOM.cam10_v01
                     settingsForm.blevel = 0;
                 }
             }
+            tl.LogMessage("Camera", "Read gain/offset/blevel settings from file; gain=" + settingsForm.gain.ToString() + " offset=" + settingsForm.offset.ToString() + " blevel=" + settingsForm.blevel.ToString());
             tl.LogMessage("Camera", "Completed initialisation");
         }
 
@@ -206,6 +208,7 @@ namespace ASCOM.cam10_v01
 
         public string Action(string actionName, string actionParameters)
         {
+            tl.LogMessage("Action", "Not implemented");
             throw new ASCOM.ActionNotImplementedException("Action " + actionName + " is not implemented by this driver");
         }
 
@@ -256,19 +259,25 @@ namespace ASCOM.cam10_v01
                 if (value)
                 {
                     tl.LogMessage("Connected Set", "Connecting to camera, call cameraConnect from cam10ll01.dll");
-                    if (cameraConnect() == false) throw new ASCOM.NotConnectedException("Cant connect to cam10");
-                    connectedState = true;
+                    if (cameraConnect() == false)
+                    {
+                        tl.LogMessage("Connected Set", "Cant connect to cam10");
+                        throw new ASCOM.NotConnectedException("Cant connect to cam10");
+                    }
                     tl.LogMessage("Connected Set", "connectedState=true");
-                    //show cam10 settings form
+                    connectedState = true;
                     settingsForm.Show();                   
                 }
                 else
                 {
                     tl.LogMessage("Connected Set", "Disconnecting from camera, call cameraConnect from cam10ll01.dll");
-                    if (cameraDisconnect() == false) throw new ASCOM.NotConnectedException("Cant disconnect cam10");
-                    connectedState = false;
+                    if (cameraDisconnect() == false)
+                    {
+                        tl.LogMessage("Connected Set", "Cant disconnect cam10");
+                        throw new ASCOM.NotConnectedException("Cant disconnect cam10");
+                    }
                     tl.LogMessage("Connected Set", "connectedState=false");
-                    //hide cam10 settings form
+                    connectedState = false;
                     settingsForm.Hide();
                 }
             }
@@ -381,9 +390,12 @@ namespace ASCOM.cam10_v01
             }
             set
             {
-                tl.LogMessage("BinX Set", value.ToString()); 
-                if ((value < 1)||(value>this.MaxBinX)) throw new ASCOM.InvalidValueException("BinX", value.ToString(), "BinX must be in range [1;MaxBinX]");
-                tl.LogMessage("BinX Set", "Check complete"); 
+                tl.LogMessage("BinX Set", value.ToString());
+                if ((value < 1) || (value > this.MaxBinX))
+                {
+                    tl.LogMessage("BinX Set", "InvalidValueException BinX must be in range [1;MaxBinX]");
+                    throw new ASCOM.InvalidValueException("BinX", value.ToString(),"BinX must be in range [1;MaxBinX]");
+                } 
                 cameraStartX=(cameraStartX * cameraBinX) / value;
                 cameraNumX = (cameraNumX * cameraBinX) / value;
                 cameraBinX = cameraBinY = value;
@@ -399,9 +411,12 @@ namespace ASCOM.cam10_v01
             }
             set
             {
-                tl.LogMessage("BinY Set", value.ToString());                
-                if ((value < 1)||(value>this.MaxBinY)) throw new ASCOM.InvalidValueException("BinY", value.ToString(), "BinY must be in range [1;MaxBinY]");
-                tl.LogMessage("BinY Set", "Check complete"); 
+                tl.LogMessage("BinY Set", value.ToString());
+                if ((value < 1) || (value > this.MaxBinY))
+                {
+                    tl.LogMessage("BinY Set", "InvalidValueException BinY must be in range [1;MaxBinY]");
+                    throw new ASCOM.InvalidValueException("BinY", value.ToString(), "BinY must be in range [1;MaxBinY]");
+                }
                 cameraStartY = (cameraStartY * cameraBinY) / value;
                 cameraNumY = (cameraNumY * cameraBinY) / value;
                 cameraBinY = cameraBinX = value;
@@ -584,7 +599,7 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("ExposureMin Get", "0.001");
+                tl.LogMessage("ExposureMin Get", "0.0");
                 return 0.0;
             }
         }
@@ -783,8 +798,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("MaxADU Get", "255");
-                return 255;
+                tl.LogMessage("MaxADU Get", (256 * cameraBinX * cameraBinX - 1).ToString());
+                return 256*cameraBinX*cameraBinX-1;
             }
         }
 
@@ -816,10 +831,12 @@ namespace ASCOM.cam10_v01
             set
             {
                 tl.LogMessage("NumX set", value.ToString());
-                if ((value < 1) || (value > (ccdWidth / cameraBinX))) throw new InvalidValueException("NumX Set", value.ToString(), "NumX must be in range [1;ccdWidth/cameraBinX]");
-                tl.LogMessage("NumX set", "Check completed");
-                cameraNumX = value;
-                
+                if ((value < 1) || (value > (ccdWidth / cameraBinX)))
+                {
+                    tl.LogMessage("NumX set", "InvalidValueException NumX must be in range [1;ccdWidth/cameraBinX]");
+                    throw new InvalidValueException("NumX Set", value.ToString(), "NumX must be in range [1;ccdWidth/cameraBinX]");
+                }
+                cameraNumX = value;                
             }
         }
 
@@ -833,8 +850,11 @@ namespace ASCOM.cam10_v01
             set
             {
                 tl.LogMessage("NumY set", value.ToString());
-                if ((value < 1) || (value > (ccdHeight / cameraBinY))) throw new InvalidValueException("NumY Set", value.ToString(), "NumY must be in range [1;ccdHeight/cameraBinY]");
-                tl.LogMessage("NumY set", "Check completed");
+                if ((value < 1) || (value > (ccdHeight / cameraBinY)))
+                {
+                    tl.LogMessage("NumY set", "InvalidValueException NumY must be in range [1;ccdHeight/cameraBinY]");
+                    throw new InvalidValueException("NumY Set", value.ToString(), "NumY must be in range [1;ccdHeight/cameraBinY]");
+                }                
                 cameraNumY = value;
             }
         }
@@ -930,13 +950,26 @@ namespace ASCOM.cam10_v01
         public void StartExposure(double Duration, bool Light)
         {
             //check exposure parameters
-            tl.LogMessage("StartExposure", "Start check");
-            if ((Duration < ExposureMin)||(Duration > ExposureMax) ) throw new InvalidValueException("StartExposure", Duration.ToString(), "Duration must be in range [0.0;2.0]sec");
-            if ((cameraStartX + cameraNumX) > (ccdWidth / cameraBinX)) throw new InvalidValueException("StartExposure", (cameraStartX + cameraNumX).ToString(), "(cameraStartX + cameraNumX) must be < ccdWidth / cameraBinX");
-            if ((cameraStartY + cameraNumY) > (ccdHeight / cameraBinY)) throw new InvalidValueException("StartExposure", (cameraStartY + cameraNumY).ToString(), "(cameraStartY + cameraNumY) must be < ccdHeight / cameraBinY");
+            tl.LogMessage("StartExposure","Duration="+Duration.ToString()+" Light="+Light.ToString());
+            if ((Duration < ExposureMin) || (Duration > ExposureMax))
+            {
+                tl.LogMessage("StartExposure", "InvalidValueException Duration must be in range [MinExposure;MaxExposure]");
+                throw new InvalidValueException("StartExposure", Duration.ToString(), "Duration must be in range [MinExposure;MaxExposure]");
+            }
+            if ((cameraStartX + cameraNumX) > (ccdWidth / cameraBinX))
+            {
+                tl.LogMessage("StartExposure", "InvalidValueException (cameraStartX + cameraNumX) must be < (ccdWidth / cameraBinX)");
+                throw new InvalidValueException("StartExposure", (cameraStartX + cameraNumX).ToString(), "(cameraStartX + cameraNumX) must be < (ccdWidth / cameraBinX)");
+            }
+            if ((cameraStartY + cameraNumY) > (ccdHeight / cameraBinY))
+            {
+                tl.LogMessage("StartExposure", "InvalidValueException (cameraStartY + cameraNumY) must be < (ccdHeight / cameraBinY)");
+                throw new InvalidValueException("StartExposure", (cameraStartY + cameraNumY).ToString(), "(cameraStartY + cameraNumY) must be < (ccdHeight / cameraBinY)");
+            }
             //save gain, offset settings
-            tl.LogMessage("StartExposure", "Check complete");
-            tl.LogMessage("StartExposure", "Saving gain/offset value");
+            tl.LogMessage("StartExposure", "Saving gain/offset/blevel settings to "+settingFilePath);
+            tl.LogMessage("StartExposure", "Also in Win with UAC check /Users/AppData/Local/VirtualStore/Program Files (x86)/Common Files/ASCOM/Camera/cam10/ dir");
+            tl.LogMessage("StartExposure", "Saving gain/offset/blevel settings to file; gain=" + settingsForm.gain.ToString() + " offset=" + settingsForm.offset.ToString() + " blevel=" + settingsForm.blevel.ToString());
             iniSettingsClass iniSettings = new iniSettingsClass();
             iniSettings.gain = settingsForm.gain;
             iniSettings.offset = settingsForm.offset;
@@ -954,15 +987,15 @@ namespace ASCOM.cam10_v01
             //start exposure
             tl.LogMessage("StartExposure", "Call cameraStartExposure from cam10ll01.dll, args: ");
             tl.LogMessage("StartExposure",  " Bin="+1.ToString() +
-                                            " cameraStartX" + this.cameraStartX.ToString() + 
-                                            " cameraStartY" + this.cameraStartY.ToString() + 
-                                            " cameraNumX" + this.cameraNumX.ToString() + 
-                                            " cameraNumY" + this.cameraNumY.ToString() + 
-                                            " Duration" + Duration.ToString() + 
-                                            " Light" + Light.ToString()+ 
-                                            " gain" + settingsForm.gain.ToString() +
-                                            " offset" + settingsForm.offset.ToString() +
-                                            " blevel" + settingsForm.blevel.ToString());
+                                            " cameraStartX=" + this.cameraStartX.ToString() + 
+                                            " cameraStartY=" + this.cameraStartY.ToString() + 
+                                            " cameraNumX=" + this.cameraNumX.ToString() + 
+                                            " cameraNumY=" + this.cameraNumY.ToString() + 
+                                            " Duration=" + Duration.ToString() + 
+                                            " Light=" + Light.ToString()+ 
+                                            " gain=" + settingsForm.gain.ToString() +
+                                            " offset=" + settingsForm.offset.ToString() +
+                                            " blevel=" + settingsForm.blevel.ToString());
             cameraStartExposure(1, cameraStartX, cameraStartY, cameraNumX, cameraNumY, Duration, Light, settingsForm.gain, settingsForm.offset, settingsForm.blevel);
         }
 
@@ -976,8 +1009,11 @@ namespace ASCOM.cam10_v01
             set
             {
                 tl.LogMessage("StartX Set", value.ToString());
-                if ((value < 0) || (value >= (ccdWidth / cameraBinX))) throw new InvalidValueException("StartX Set", value.ToString(), "StartX must be in range [0;ccdWidth/cameraBinX)");
-                tl.LogMessage("StartX Set", "Check complete");
+                if ((value < 0) || (value >= (ccdWidth / cameraBinX)))
+                {
+                    tl.LogMessage("StartX Set", "InvalidValueException StartX must be in range [0;ccdWidth/cameraBinX)");
+                    throw new InvalidValueException("StartX Set", value.ToString(), "StartX must be in range [0;ccdWidth/cameraBinX)");
+                }               
                 cameraStartX = value;
             }
         }
@@ -992,8 +1028,11 @@ namespace ASCOM.cam10_v01
             set
             {
                 tl.LogMessage("StartY set", value.ToString());
-                if ((value < 0) || (value >= (ccdHeight / cameraBinY))) throw new InvalidValueException("StartY Set", value.ToString(), "StartY must be in range [0;ccdHeight/cameraBinY)");
-                tl.LogMessage("StartY Set", "Check complete");
+                if ((value < 0) || (value >= (ccdHeight / cameraBinY)))
+                {
+                    tl.LogMessage("StartY Set", "InvalidValueException StartY must be in range [0;ccdHeight/cameraBinY)");
+                    throw new InvalidValueException("StartY Set", value.ToString(), "StartY must be in range [0;ccdHeight/cameraBinY)");
+                }               
                 cameraStartY = value;
             }
         }
