@@ -26,6 +26,7 @@ namespace ASCOM.cam10_v01
         private short pGain = 0;
         private short pOffset = 0;
         private short pBlevel = 0;
+        private bool pOnTop = false;
 
         public short gain
         {
@@ -77,6 +78,18 @@ namespace ASCOM.cam10_v01
                     this.blevelTrackBar.Value = pBlevel;
                 }
                 else throw new ASCOM.InvalidValueException("cam_settings, offset");
+            }
+        }
+
+        public bool onTop
+        {
+            get
+            {
+                return onTopCheckBox.Checked;
+            }
+            set
+            {
+                onTopCheckBox.Checked = value;
             }
         }
 
