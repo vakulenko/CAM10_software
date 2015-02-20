@@ -720,16 +720,34 @@ namespace ASCOM.cam10_v01
                     zeropixelpoint = pixelpoint = (ushort*)imagepoint;
                     //Create image array
                     cameraImageArray = Array.CreateInstance(typeof(int), cameraNumX * cameraNumY);
-                    int i, j, k= 0;
+                    int i, j, bini, binj, k=0, binSumm=0;
 
-                    for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
-                        for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
-                            
-                        {
-                            pixelpoint = (ushort*)(zeropixelpoint + ((j)*(ccdWidth) + i));
-                            cameraImageArray.SetValue(*pixelpoint, k);
-                            k++;
-                        }
+                    if (cameraBinX == 1)
+                    {
+                        for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
+                            for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
+                            {
+                                pixelpoint = (ushort*)(zeropixelpoint + (j * (ccdWidth) + i));
+                                cameraImageArray.SetValue(*pixelpoint, k);
+                                k++;
+                            }
+                    }
+                    else
+                    {
+                        for (j=cameraStartY*cameraBinY; j<(cameraStartY + cameraNumY)*cameraBinY;j=j+cameraBinY)
+                            for (i = cameraStartX * cameraBinX; i < (cameraStartX + cameraNumX) * cameraBinX; i = i + cameraBinX)
+                            {
+                                binSumm = 0;
+                                for (binj = 0; binj < cameraBinY; binj++)
+                                    for (bini = 0; bini < cameraBinX; bini++)
+                                    {
+                                        pixelpoint = (ushort*)(zeropixelpoint + ( (j+binj) * (ccdWidth) + (i+bini) ));
+                                        binSumm += *pixelpoint;
+                                    }
+                                cameraImageArray.SetValue(binSumm, k);
+                                k++;
+                            }
+                    }                    
                 }                                   
                 return cameraImageArray;
             }
@@ -811,8 +829,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("MaxBinX Get", "1");
-                return 1;
+                tl.LogMessage("MaxBinX Get", "4");
+                return 4;
             }
         }
 
@@ -820,8 +838,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("MaxBinY Get", "1");
-                return 1;
+                tl.LogMessage("MaxBinY Get", "4");
+                return 4;
             }
         }
 
@@ -991,13 +1009,7 @@ namespace ASCOM.cam10_v01
             System.Threading.Thread.Sleep((int)Duration * 1000);  // Sleep for the duration to simulate exposure 
             //start exposure
             tl.LogMessage("StartExposure", "Call cameraStartExposure from cam10ll01.dll, args: ");
-            tl.LogMessage("StartExposure",  " Bin="+1.ToString() +
-                                            " cameraStartX=" + this.cameraStartX.ToString() + 
-                                            " cameraStartY=" + this.cameraStartY.ToString() + 
-                                            " cameraNumX=" + this.cameraNumX.ToString() + 
-                                            " cameraNumY=" + this.cameraNumY.ToString() + 
-                                            " Duration=" + Duration.ToString() + 
-                                            " Light=" + Light.ToString()+ 
+            tl.LogMessage("StartExposure",  " Duration=" + Duration.ToString() +                                             
                                             " gain=" + settingsForm.gain.ToString() +
                                             " offset=" + settingsForm.offset.ToString() +
                                             " blevel=" + settingsForm.blevel.ToString());

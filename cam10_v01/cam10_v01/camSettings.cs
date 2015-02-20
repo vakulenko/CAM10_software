@@ -39,7 +39,7 @@ namespace ASCOM.cam10_v01
                 if ((value >= minGain) && (value <= maxGain))
                 {
                     pGain = value;
-                    this.gainTextBox.Text = pGain.ToString();
+                    this.gainNumUpDown.Value = pGain;
                     this.gainTrackBar.Value = pGain;
                 }
                 else throw new ASCOM.InvalidValueException("cam_settings, gain");
@@ -56,7 +56,7 @@ namespace ASCOM.cam10_v01
                 if ((value >= minOffset) && (value <= maxOffset))
                 {
                     pOffset = value;
-                    this.offsetTextBox.Text = pOffset.ToString();
+                    this.offsetNumUpDown.Value = pOffset;
                     this.offsetTrackBar.Value = pOffset;
                 }
                 else throw new ASCOM.InvalidValueException("cam_settings, offset");
@@ -74,7 +74,7 @@ namespace ASCOM.cam10_v01
                 if ((value >= minBlevel) && (value <= maxBlevel))
                 {
                     pBlevel = value;
-                    this.blevelTextBox.Text = pBlevel.ToString();
+                    this.blevelNumUpDown.Value = pBlevel;
                     this.blevelTrackBar.Value = pBlevel;
                 }
                 else throw new ASCOM.InvalidValueException("cam_settings, offset");
@@ -95,68 +95,38 @@ namespace ASCOM.cam10_v01
 
         private void GainTrackBar_Scroll(object sender, EventArgs e)
         {
-            gainTextBox.Text = gainTrackBar.Value.ToString();
+            gainNumUpDown.Value = gainTrackBar.Value;
         }
 
         private void OffsetTrackBar_Scroll(object sender, EventArgs e)
         {
-            offsetTextBox.Text = offsetTrackBar.Value.ToString();
+            offsetNumUpDown.Value = offsetTrackBar.Value;
         }
 
         private void BlevelTrackBar_Scroll(object sender, EventArgs e)
         {
-            blevelTextBox.Text = blevelTrackBar.Value.ToString();
-        }
-
-        private void GainTextBox_TextChanged(object sender, EventArgs e)
-        {
-            bool ConvRes;
-            short ValNum;
-            //Settings are correct?
-            ConvRes = short.TryParse(gainTextBox.Text, out ValNum);
-            if ((ConvRes == false) || (ValNum < minGain) || (ValNum > maxGain))
-            {
-                gainTrackBar.Value = gain = minGain;
-                gainTextBox.Text = minGain.ToString();
-                return;
-            }
-            gainTrackBar.Value = gain = short.Parse(gainTextBox.Text);
-        }
-
-        private void OffsetTextBox_TextChanged(object sender, EventArgs e)
-        {
-            bool ConvRes;
-            short ValNum;
-            //Settings are correct?
-            ConvRes = short.TryParse(offsetTextBox.Text, out ValNum);
-            if ((ConvRes == false) || (ValNum < minOffset) || (ValNum > maxOffset))
-            {
-                offsetTrackBar.Value = offset = minOffset;
-                offsetTextBox.Text = minOffset.ToString();
-                return;
-            }
-            offsetTrackBar.Value = offset = short.Parse(offsetTextBox.Text);
-        }
-
-        private void blevelTextBox_TextChanged(object sender, EventArgs e)
-        {
-            bool ConvRes;
-            short ValNum;
-            //Settings are correct?
-            ConvRes = short.TryParse(blevelTextBox.Text, out ValNum);
-            if ((ConvRes == false) || (ValNum < minBlevel) || (ValNum > maxBlevel))
-            {
-                blevelTrackBar.Value = blevel = minBlevel;
-                blevelTextBox.Text = minBlevel.ToString();
-                return;
-            }
-            blevelTrackBar.Value = pBlevel = short.Parse(blevelTextBox.Text);
+            blevelNumUpDown.Value = blevelTrackBar.Value;
         }
 
         private void OnTopCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             if (onTopCheckBox.Checked) this.TopMost = true;
             else this.TopMost = false;
+        }
+
+        private void gainNumUpDown_ValueChanged(object sender, EventArgs e)
+        {
+            gainTrackBar.Value = gain = (short) gainNumUpDown.Value;
+        }
+
+        private void offsetNumUpDown_ValueChanged(object sender, EventArgs e)
+        {
+            offsetTrackBar.Value = offset = (short)offsetNumUpDown.Value;
+        }
+
+        private void blevelNumUpDown_ValueChanged(object sender, EventArgs e)
+        {
+            blevelTrackBar.Value = blevel = (short) blevelNumUpDown.Value;
         }
     }
 }
