@@ -332,9 +332,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                string name = "cam10";
-                tl.LogMessage("Name Get", name);
-                return name;
+                tl.LogMessage("Name Get", "cam10");
+                return "cam10";
             }
         }
 
@@ -371,7 +370,7 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("BayerOffsetX Get Get", "Not implemented");
+                tl.LogMessage("BayerOffsetX Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("BayerOffsetX", false);
             }
         }
@@ -380,7 +379,7 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("BayerOffsetY Get Get", "Not implemented");
+                tl.LogMessage("BayerOffsetY Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("BayerOffsetX", true);
             }
         }
@@ -1005,8 +1004,6 @@ namespace ASCOM.cam10_v01
             //Save parameters
             cameraLastExposureDuration = Duration;
             exposureStart = DateTime.Now;
-            ////temp delay
-            System.Threading.Thread.Sleep((int)Duration * 1000);  // Sleep for the duration to simulate exposure 
             //start exposure
             tl.LogMessage("StartExposure", "Call cameraStartExposure from cam10ll01.dll, args: ");
             tl.LogMessage("StartExposure",  " Duration=" + Duration.ToString() +                                             
@@ -1162,6 +1159,7 @@ namespace ASCOM.cam10_v01
         {
             if (!IsConnected)
             {
+                tl.LogMessage("CheckConnected", "connectedState=false" + message);
                 throw new ASCOM.NotConnectedException(message);
             }
         }
