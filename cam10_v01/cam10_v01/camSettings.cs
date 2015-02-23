@@ -26,7 +26,6 @@ namespace ASCOM.cam10_v01
         private short pGain = 0;
         private short pOffset = 0;
         private short pBlevel = 0;
-        private bool pOnTop = false;
 
         public short gain
         {
@@ -90,6 +89,18 @@ namespace ASCOM.cam10_v01
             set
             {
                 onTopCheckBox.Checked = value;
+            }
+        }
+
+        public bool autoOffset
+        {
+            get
+            {
+                return autoOffsetCheckBox.Checked;
+            }
+            set
+            {
+                autoOffsetCheckBox.Checked = value;
             }
         }
 

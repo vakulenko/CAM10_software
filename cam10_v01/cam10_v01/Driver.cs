@@ -44,6 +44,7 @@ namespace ASCOM.cam10_v01
         public short offset;
         public short blevel;
         public bool onTop;
+        public bool autoOffset;
 
         public iniSettingsClass()
         {
@@ -51,6 +52,7 @@ namespace ASCOM.cam10_v01
             offset = 0;
             blevel = 0;
             onTop = false;
+            autoOffset = false;
         }
     }
 
@@ -108,7 +110,7 @@ namespace ASCOM.cam10_v01
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
         static extern bool cameraIsConnected();
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-        static extern bool cameraStartExposure(double Duration, int gain, int offset, int blevel);
+        static extern bool cameraStartExposure(double Duration, int gain, int offset, bool autoOffset, int blevel);
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
         static extern int cameraGetCameraState();
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
@@ -156,6 +158,7 @@ namespace ASCOM.cam10_v01
                         settingsForm.offset = iniSettings.offset;
                         settingsForm.blevel = iniSettings.blevel;
                         settingsForm.onTop = iniSettings.onTop;
+                        settingsForm.autoOffset = iniSettings.autoOffset;                            
                     }
                 }
                 catch
@@ -164,9 +167,10 @@ namespace ASCOM.cam10_v01
                     settingsForm.offset = 0;
                     settingsForm.blevel = 0;
                     settingsForm.onTop = false;
+                    settingsForm.autoOffset = false;
                 }
             }
-            tl.LogMessage("Camera", "Read gain/offset/blevel settings from file; gain=" + settingsForm.gain.ToString() + " offset=" + settingsForm.offset.ToString() + " blevel=" + settingsForm.blevel.ToString() + " onTop="+settingsForm.onTop.ToString());
+            tl.LogMessage("Camera", "Read gain/offset/blevel settings from file; gain=" + settingsForm.gain.ToString() + " offset=" + settingsForm.offset.ToString() + " autoOffset" + settingsForm.autoOffset.ToString() + " blevel=" + settingsForm.blevel.ToString() + " onTop="+settingsForm.onTop.ToString());
             tl.LogMessage("Camera", "Completed initialisation");
         }
 
@@ -996,6 +1000,7 @@ namespace ASCOM.cam10_v01
             iniSettings.offset = settingsForm.offset;
             iniSettings.blevel = settingsForm.blevel;
             iniSettings.onTop = settingsForm.onTop;
+            iniSettings.autoOffset = settingsForm.autoOffset;
             using (Stream writer = new FileStream(settingFilePath, FileMode.Create))
             {
                 XmlSerializer serializer = new XmlSerializer(typeof(iniSettingsClass));
@@ -1009,8 +1014,9 @@ namespace ASCOM.cam10_v01
             tl.LogMessage("StartExposure",  " Duration=" + Duration.ToString() +                                             
                                             " gain=" + settingsForm.gain.ToString() +
                                             " offset=" + settingsForm.offset.ToString() +
+                                            " autoOffset=" + settingsForm.autoOffset.ToString() +
                                             " blevel=" + settingsForm.blevel.ToString());
-            cameraStartExposure(Duration, settingsForm.gain, settingsForm.offset, settingsForm.blevel);
+            cameraStartExposure(Duration, settingsForm.gain, settingsForm.offset, settingsForm.autoOffset, settingsForm.blevel);
         }
 
         public int StartX

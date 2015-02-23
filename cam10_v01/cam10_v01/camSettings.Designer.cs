@@ -41,6 +41,7 @@
             this.gainNumUpDown = new System.Windows.Forms.NumericUpDown();
             this.offsetNumUpDown = new System.Windows.Forms.NumericUpDown();
             this.blevelNumUpDown = new System.Windows.Forms.NumericUpDown();
+            this.autoOffsetCheckBox = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.gainTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.offsetTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.blevelTrackBar)).BeginInit();
@@ -186,12 +187,23 @@
             this.blevelNumUpDown.TabIndex = 44;
             this.blevelNumUpDown.ValueChanged += new System.EventHandler(this.blevelNumUpDown_ValueChanged);
             // 
+            // autoOffsetCheckBox
+            // 
+            this.autoOffsetCheckBox.AutoSize = true;
+            this.autoOffsetCheckBox.Location = new System.Drawing.Point(163, 73);
+            this.autoOffsetCheckBox.Name = "autoOffsetCheckBox";
+            this.autoOffsetCheckBox.Size = new System.Drawing.Size(48, 17);
+            this.autoOffsetCheckBox.TabIndex = 45;
+            this.autoOffsetCheckBox.Text = "Auto";
+            this.autoOffsetCheckBox.UseVisualStyleBackColor = true;
+            // 
             // camSettings
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(230, 202);
             this.ControlBox = false;
+            this.Controls.Add(this.autoOffsetCheckBox);
             this.Controls.Add(this.blevelNumUpDown);
             this.Controls.Add(this.offsetNumUpDown);
             this.Controls.Add(this.gainNumUpDown);
@@ -236,5 +248,6 @@
         private System.Windows.Forms.NumericUpDown gainNumUpDown;
         private System.Windows.Forms.NumericUpDown offsetNumUpDown;
         private System.Windows.Forms.NumericUpDown blevelNumUpDown;
+        private System.Windows.Forms.CheckBox autoOffsetCheckBox;
     }
 }
