@@ -22,11 +22,6 @@ using ASCOM.DeviceInterface;
 using System.Globalization;
 using System.Collections;
 
-// work with files
-using System.IO;
-// class savings
-using System.Xml.Serialization; 
-
 namespace ASCOM.cam10_v01
 {
     /// <summary>
@@ -34,27 +29,6 @@ namespace ASCOM.cam10_v01
     /// </summary>
     [Guid("23790512-dbde-4359-8ef9-a90fda6da6bc")]
     [ClassInterface(ClassInterfaceType.None)]
-
-    /// <summary>
-    /// Class for saving settings (serializing)
-    /// </summary>
-    public class iniSettingsClass
-    {
-        public short gain;
-        public short offset;
-        public short blevel;
-        public bool onTop;
-        public bool autoOffset;
-
-        public iniSettingsClass()
-        {
-            gain = 0;
-            offset = 0;
-            blevel = 0;
-            onTop = false;
-            autoOffset = false;
-        }
-    }
 
     public class Camera : ICameraV2
     { 
@@ -69,8 +43,23 @@ namespace ASCOM.cam10_v01
         private static string driverDescription = "Cam10 v.0.1 ASCOM Driver";
 
         internal static string traceStateProfileName = "Trace Level";
+        internal static string gainStateProfileName = "gain";
+        internal static string offsetStateProfileName = "offset";
+        internal static string blevelStateProfileName = "blevel";
+        internal static string onTopStateProfileName = "onTop";
+        internal static string autoOffsetStateProfileName = "autoOffset";
         internal static string traceStateDefault = "false";
+        internal static string gainStateDefault = "0";
+        internal static string offsetStateDefault = "0";
+        internal static string blevelStateDefault = "5";
+        internal static string onTopStateDefault = "false";
+        internal static string autoOffsetStateDefault = "false";
         internal static bool traceState;
+        internal static short gainState;
+        internal static short offsetState;
+        internal static short blevelState;
+        internal static bool onTopState;
+        internal static bool autoOffsetState;
 
         /// <summary>
         /// Form, handle gain/offset settings
@@ -125,11 +114,7 @@ namespace ASCOM.cam10_v01
         public Camera()
         {
             // Read device configuration from the ASCOM Profile store
-            ReadProfile();
-            //Get path to Common Files directory
-            string arch = System.Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE").ToString();
-            if (arch.IndexOf("86") != -1) settingFilePath = Environment.ExpandEnvironmentVariables("%CommonProgramFiles%\\ASCOM\\Camera\\cam10\\cam10_settings.xml");
-            else settingFilePath = Environment.ExpandEnvironmentVariables("%CommonProgramFiles(x86)%\\ASCOM\\Camera\\cam10\\cam10_settings.xml");
+            ReadProfile();            
             //Init debug logger
             tl = new TraceLogger("", "cam10_v01");
             tl.Enabled = traceState;
@@ -141,39 +126,15 @@ namespace ASCOM.cam10_v01
             // Initialise astro utilities object
             astroUtilities = new AstroUtils(); 
             //New form for gain/offset settings
-            settingsForm = new camSettings();
-            //extract gain, offset settings
-            tl.LogMessage("Camera", "Reading gain/offset/blevel settings from file " + settingFilePath);
-            tl.LogMessage("Camera", "Also in Win with UAC check /Users/AppData/Local/VirtualStore/Program Files (x86)/Common Files/ASCOM/Camera/cam10/ dir");
-            if (File.Exists(settingFilePath))
-            {
-                try
-                {
-                    using (Stream stream = new FileStream(settingFilePath, FileMode.Open))
-                    {
-                        XmlSerializer serializer = new XmlSerializer(typeof(iniSettingsClass));
-
-                        iniSettingsClass iniSettings = (iniSettingsClass)serializer.Deserialize(stream);
-                        settingsForm.gain = iniSettings.gain;
-                        settingsForm.offset = iniSettings.offset;
-                        settingsForm.blevel = iniSettings.blevel;
-                        settingsForm.onTop = iniSettings.onTop;
-                        settingsForm.autoOffset = iniSettings.autoOffset;                            
-                    }
-                }
-                catch
-                {                    
-                    settingsForm.gain = 0;
-                    settingsForm.offset = 0;
-                    settingsForm.blevel = 0;
-                    settingsForm.onTop = false;
-                    settingsForm.autoOffset = false;
-                }
-            }
-            tl.LogMessage("Camera", "Read gain/offset/blevel settings from file; gain=" + settingsForm.gain.ToString() + " offset=" + settingsForm.offset.ToString() + " autoOffset" + settingsForm.autoOffset.ToString() + " blevel=" + settingsForm.blevel.ToString() + " onTop="+settingsForm.onTop.ToString());
+            settingsForm = new camSettings();           
+            settingsForm.gain = gainState;
+            settingsForm.offset = offsetState;
+            settingsForm.blevel = blevelState;
+            settingsForm.onTop = onTopState;
+            settingsForm.autoOffset = autoOffsetState;
+            //tl.LogMessage("Camera", "Read gain/offset/blevel settings from file; gain=" + settingsForm.gain.ToString() + " offset=" + settingsForm.offset.ToString() + " autoOffset" + settingsForm.autoOffset.ToString() + " blevel=" + settingsForm.blevel.ToString() + " onTop="+settingsForm.onTop.ToString());
             tl.LogMessage("Camera", "Completed initialisation");
         }
-
 
         //
         // PUBLIC COM INTERFACE ICameraV2 IMPLEMENTATION
@@ -285,7 +246,7 @@ namespace ASCOM.cam10_v01
                         throw new ASCOM.NotConnectedException("Cant disconnect cam10");
                     }
                     tl.LogMessage("Connected Set", "connectedState=false");
-                    connectedState = false;
+                    WriteProfile();
                     settingsForm.Hide();
                 }
             }
@@ -990,25 +951,15 @@ namespace ASCOM.cam10_v01
             {
                 tl.LogMessage("StartExposure", "InvalidValueException (cameraStartY + cameraNumY) must be < (ccdHeight / cameraBinY)");
                 throw new InvalidValueException("StartExposure", (cameraStartY + cameraNumY).ToString(), "(cameraStartY + cameraNumY) must be < (ccdHeight / cameraBinY)");
-            }
-            //save gain, offset settings
-            tl.LogMessage("StartExposure", "Saving gain/offset/blevel settings to "+settingFilePath);
-            tl.LogMessage("StartExposure", "Also in Win with UAC check /Users/AppData/Local/VirtualStore/Program Files (x86)/Common Files/ASCOM/Camera/cam10/ dir");
-            tl.LogMessage("StartExposure", "Saving gain/offset/blevel settings to file; gain=" + settingsForm.gain.ToString() + " offset=" + settingsForm.offset.ToString() + " blevel=" + settingsForm.blevel.ToString() + " onTop=" + settingsForm.onTop.ToString());
-            iniSettingsClass iniSettings = new iniSettingsClass();
-            iniSettings.gain = settingsForm.gain;
-            iniSettings.offset = settingsForm.offset;
-            iniSettings.blevel = settingsForm.blevel;
-            iniSettings.onTop = settingsForm.onTop;
-            iniSettings.autoOffset = settingsForm.autoOffset;
-            using (Stream writer = new FileStream(settingFilePath, FileMode.Create))
-            {
-                XmlSerializer serializer = new XmlSerializer(typeof(iniSettingsClass));
-                serializer.Serialize(writer, iniSettings);
-            }
+            }                       
             //Save parameters
             cameraLastExposureDuration = Duration;
-            exposureStart = DateTime.Now;
+            exposureStart = DateTime.Now; 
+            gainState = settingsForm.gain;
+            offsetState = settingsForm.offset;
+            blevelState = settingsForm.blevel;
+            onTopState = settingsForm.onTop;
+            autoOffsetState = settingsForm.autoOffset;
             //start exposure
             tl.LogMessage("StartExposure", "Call cameraStartExposure from cam10ll01.dll, args: ");
             tl.LogMessage("StartExposure",  " Duration=" + Duration.ToString() +                                             
@@ -1179,6 +1130,11 @@ namespace ASCOM.cam10_v01
             {
                 driverProfile.DeviceType = "Camera";
                 traceState = Convert.ToBoolean(driverProfile.GetValue(driverID, traceStateProfileName, string.Empty, traceStateDefault));
+                gainState = Convert.ToInt16(driverProfile.GetValue(driverID, gainStateProfileName, string.Empty, gainStateDefault));
+                offsetState = Convert.ToInt16(driverProfile.GetValue(driverID, offsetStateProfileName, string.Empty, offsetStateDefault));
+                blevelState = Convert.ToInt16(driverProfile.GetValue(driverID, blevelStateProfileName, string.Empty, blevelStateDefault));
+                onTopState = Convert.ToBoolean(driverProfile.GetValue(driverID, onTopStateProfileName, string.Empty, onTopStateDefault));
+                autoOffsetState = Convert.ToBoolean(driverProfile.GetValue(driverID, autoOffsetStateProfileName, string.Empty, autoOffsetStateDefault));
             }
         }
 
@@ -1191,6 +1147,11 @@ namespace ASCOM.cam10_v01
             {
                 driverProfile.DeviceType = "Camera";
                 driverProfile.WriteValue(driverID, traceStateProfileName, traceState.ToString());
+                driverProfile.WriteValue(driverID, gainStateProfileName, gainState.ToString());
+                driverProfile.WriteValue(driverID, offsetStateProfileName, offsetState.ToString());
+                driverProfile.WriteValue(driverID, blevelStateProfileName, blevelState.ToString());
+                driverProfile.WriteValue(driverID, onTopStateProfileName, onTopState.ToString());
+                driverProfile.WriteValue(driverID, autoOffsetStateProfileName, autoOffsetState.ToString());
             }
         }
 
