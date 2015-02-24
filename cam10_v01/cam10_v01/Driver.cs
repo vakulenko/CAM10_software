@@ -42,6 +42,7 @@ namespace ASCOM.cam10_v01
         /// </summary>
         private static string driverDescription = "Cam10 v.0.1 ASCOM Driver";
 
+        //parameters fro ASCOM profile read/write
         internal static string traceStateProfileName = "Trace Level";
         internal static string gainStateProfileName = "gain";
         internal static string offsetStateProfileName = "offset";
@@ -51,7 +52,7 @@ namespace ASCOM.cam10_v01
         internal static string traceStateDefault = "false";
         internal static string gainStateDefault = "0";
         internal static string offsetStateDefault = "0";
-        internal static string blevelStateDefault = "5";
+        internal static string blevelStateDefault = "0";
         internal static string onTopStateDefault = "false";
         internal static string autoOffsetStateDefault = "false";
         internal static bool traceState;
@@ -227,7 +228,7 @@ namespace ASCOM.cam10_v01
 
                 if (value)
                 {
-                    tl.LogMessage("Connected Set", "Connecting to camera, call cameraConnect from cam10ll01.dll");
+                    tl.LogMessage("Connected Set", "Connecting to camera, call cameraConnect from cam10ll01.dll"); 
                     if (cameraConnect() == false)
                     {
                         tl.LogMessage("Connected Set", "Cant connect to cam10");
@@ -246,6 +247,8 @@ namespace ASCOM.cam10_v01
                         throw new ASCOM.NotConnectedException("Cant disconnect cam10");
                     }
                     tl.LogMessage("Connected Set", "connectedState=false");
+                    connectedState = false;
+                    //save settings for ASCOM profile
                     WriteProfile();
                     settingsForm.Hide();
                 }

@@ -264,45 +264,43 @@ begin
 end;
 
 function cameraConnect () : WordBool;  stdcall; export;
-var  FT_flag, FT_OP_flag : boolean;
-I : Integer;
+var  FT_OP_flag : boolean;
 begin
- FT_flag:=false;
- FT_OP_flag:=true;
- GetFTDeviceCount;
- I := FT_Device_Count-1;
- while I >= 0 do
-  begin
-   GetFTDeviceSerialNo(I);
-   //if cam10 present
-   if pos('CAM10',FT_Device_String) <> 0 then FT_flag:=true;
-   GetFTDeviceDescription(I);
-   Dec(I);
-  end;
-  if FT_flag then
-   begin
-    if Open_USB_Device_By_Serial_Number(FT_CAM10A,'CAM10A') <> FT_OK then FT_OP_flag := false;
-    if Open_USB_Device_By_Serial_Number(FT_CAM10B,'CAM10B') <> FT_OK then FT_OP_flag := false;
-    if Set_USB_Device_BitMode(FT_CAM10B,$f7, $04)  <> FT_OK then FT_OP_flag := false;             // BitMode
-    FT_Current_Baud:=100000;
-    Set_USB_Device_BaudRate(FT_CAM10B);
-    Set_USB_Device_LatencyTimer(FT_CAM10B,2);
-    Set_USB_Device_LatencyTimer(FT_CAM10A,2);
-    Set_USB_Device_TimeOuts(FT_CAM10A,250,100);
-    resetchip;
-    writes($1e,$8100);
-    writes($20,$0104);
-    CameraSetGain (63);
-    writes($60,0);
-    writes($61,0);
-    writes($63,blevel);
-    writes($64,blevel);
-    writes($62,$049d);
-   end;
- isConnected := FT_flag and FT_OP_flag;
- cameraState := cameraIdle;
- if((FT_OP_flag=false)and(FT_flag=true)) then cameraState := cameraError;
- Result := isConnected;
+  FT_OP_flag:=true;
+  if (FT_OP_flag) then
+    begin
+      if Open_USB_Device_By_Serial_Number(FT_CAM10A,'CAM10A') <> FT_OK then FT_OP_flag := false;
+    end;
+  if (FT_OP_flag) then
+    begin
+      if Open_USB_Device_By_Serial_Number(FT_CAM10B,'CAM10B') <> FT_OK then FT_OP_flag := false;
+    end;
+  if (FT_OP_flag) then
+    begin
+      // BitMode
+      if Set_USB_Device_BitMode(FT_CAM10B,$f7, $04)  <> FT_OK then FT_OP_flag := false;
+    end;
+  if (FT_OP_flag) then
+    begin
+      FT_Current_Baud:=100000;
+      Set_USB_Device_BaudRate(FT_CAM10B);
+      Set_USB_Device_LatencyTimer(FT_CAM10B,2);
+      Set_USB_Device_LatencyTimer(FT_CAM10A,2);
+      Set_USB_Device_TimeOuts(FT_CAM10A,250,100);
+      resetchip;
+      writes($1e,$8100);
+      writes($20,$0104);
+      CameraSetGain (63);
+      writes($60,0);
+      writes($61,0);
+      writes($63,blevel);
+      writes($64,blevel);
+      writes($62,$049d);
+    end;
+  isConnected := FT_OP_flag;
+  cameraState := cameraIdle;
+  if(FT_OP_flag=false) then cameraState := cameraError;
+  Result := isConnected;
 end;
 
 {Disconnect camera, return bool result}

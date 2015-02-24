@@ -45,7 +45,7 @@ co: posl;
 //image arrays
 bufim:array[0..(CameraWidth)*CameraHeight-1] of byte;
 bufim2:array[0..CameraWidth*CameraHeight-1] of word;
-sx0,sdx,sy0,sdy:integer;
+sdx,sy0,sdy:integer;
 kolbyte:integer;
 blevel:byte;
 hev:THandle;
@@ -225,8 +225,7 @@ begin
 end;
 
 function reads(adr:byte): word;
-var i:integer;
-ou:word;
+var ou:word;
 bufi:array[0..2047] of byte;
 begin
   Purge_USB_Device_In(FT_CAM10B);
@@ -269,6 +268,7 @@ var  FT_flag, FT_OP_flag : boolean;
 I : Integer;
 begin
  FT_flag:=false;
+ FT_OP_flag:=true;
  GetFTDeviceCount;
  I := FT_Device_Count-1;
  while I >= 0 do
