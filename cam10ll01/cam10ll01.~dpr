@@ -43,14 +43,15 @@ var
 adress:integer;
 co: posl;
 //image arrays
-bufim:array[0..(CameraWidth+1)*CameraHeight-1] of byte;
-bufim2:array[0..CameraWidth*CameraHeight-1] of word;
+bufim:array[0..(CameraWidth)*CameraHeight-1] of byte;
+bufim2:array[0..CameraWidth*CameraHeight-1] of integer;
 sx0,sdx,sy0,sdy:integer;
 kolbyte:integer;
 blevel:byte;
 hev:THandle;
 bufa:integer;
 zad:integer;
+kbyte:integer;
 
 //flag, camera connection state
 isConnected : boolean = false;
@@ -71,7 +72,7 @@ begin
  cameraState:=cameraReading;
  sleep(zad);
  bufa:=0;
- buf:=Read_USB_Device_Buffer(FT_CAM10A,@bufim,kolbyte);
+ buf:=Read_USB_Device_Buffer(FT_CAM10A,@bufim,kolbyte);kbyte:=buf;
  if buf = kolbyte then
  for y:=0 to sdy-1 do for x:=0 to sdx-1 do bufim2[x+CameraWidth*(y+sy0)]:=bufim[x+y*(sdx+1)]
  else bufa:=1;
@@ -147,7 +148,7 @@ begin
 writes($01,12+y0);
 writes($03,dy-1);
 writes($0b,$1);
-kolbyte:=(dx+1)*dy;
+kolbyte:=dx*dy;         //(dx+1)*dy;
 sdx:=dx;sdy:=dy;sy0:=y0;
 hev:=CreateEvent(nil,false,false,'');
 ComRead;
@@ -160,7 +161,6 @@ begin
   Purge_USB_Device_IN(FT_CAM10B);
  result:=false;
 end;
-imageReady := true;
 end;
 
 function QueueStatus:integer;
@@ -169,13 +169,15 @@ begin
  result:=FT_Q_Bytes;
 end;
 
-function CameraSetGain (val : integer) : WordBool;
+{Set camera gain, return bool result}
+function cameraSetGain (val : integer) : WordBool;
 begin
  writes($35,2*val);
  Result :=true;
 end;
 
-function CameraSetOffset (val : smallint;aut:boolean) : WordBool;
+{Set camera offset, return bool result}
+function cameraSetOffset (val : smallint;aut:boolean) : WordBool;
 begin
  writes($60,2*val);
  writes($61,2*val);
@@ -255,11 +257,9 @@ begin
  if (bufi[$82] and $08) <> 0 then ou:=ou+$04;
  if (bufi[$85] and $08) <> 0 then ou:=ou+$02;
  if (bufi[$88] and $08) <> 0 then ou:=ou+$01;
-// for i:=0 to FT_Q_Bytes-1 do if (bufi[i] and $08) <> 0 then bufi[i]:=$ff else bufi[i]:=0;
  Result:=ou;
 end;
 
-//Initializa camera hardware
 function cameraConnect () : WordBool;  stdcall; export;
 var  FT_flag, FT_OP_flag : boolean;
 I : Integer;
@@ -270,7 +270,7 @@ begin
  while I >= 0 do
   begin
    GetFTDeviceSerialNo(I);
-   if pos('CAM10',FT_Device_String) <> 0 then FT_flag:=true;
+   if pos('CAM10',FT_Device_String) <> 0 then FT_flag:=true;    //???? ????????? cam81 - ??????????
    GetFTDeviceDescription(I);
    Dec(I);
   end;
@@ -283,7 +283,7 @@ begin
     FT_Current_Baud:=100000;
     Set_USB_Device_BaudRate(FT_CAM10B);
 
-    Set_USB_Device_LatencyTimer(FT_CAM10B,2);
+    Set_USB_Device_LatencyTimer(FT_CAM10B,2);       //???????????? ??????????????
     Set_USB_Device_LatencyTimer(FT_CAM10A,2);
     Set_USB_Device_TimeOuts(FT_CAM10A,250,100);
 
@@ -301,24 +301,21 @@ begin
 
    end;
  isConnected := FT_flag and FT_OP_flag;
-
  cameraState := cameraIdle;
  if((FT_OP_flag=false)and(FT_flag=true)) then cameraState := cameraError;
-
  Result := isConnected;
 end;
 
-//uninitialize camera hardware
+{Disconnect camera, return bool result}
 function cameraDisconnect (): WordBool; stdcall; export;
 var FT_OP_flag : boolean;
 begin
  FT_OP_flag := true;
- if Close_USB_Device(FT_CAM10A) <> FT_OK then FT_OP_flag := false;
+ if Close_USB_Device(FT_CAM10A) <> FT_OK then FT_OP_flag := false;   //???????? ?????????
  if Close_USB_Device(FT_CAM10B) <> FT_OK then FT_OP_flag := false;
 
  if (FT_OP_flag=false) then cameraState := cameraError
  else cameraState := cameraIdle;
-
  IsConnected := not FT_OP_flag;
  Result:= FT_OP_flag;
 end;
@@ -326,28 +323,25 @@ end;
 //return camera connection status
 function cameraIsConnected () : WordBool; stdcall; export;
 begin
-  Result := isConnected;
+Result := isConnected;
 end;
 
 //starts exposure
-function cameraStartExposure (duration : double; gain,offset,sblevel : integer) : WordBool; stdcall; export;
+function cameraStartExposure (duration : double; gain,offset : integer; autoOffset : WordBool; sblevel : integer) : WordBool; stdcall; export;
 var x:integer;
 begin
- imageReady := false;
- cameraState:=cameraWaiting;
- cameraState:=cameraExposing;
-
- blevel:=sblevel;
- cameraSetGain(gain);
- cameraSetOffset(offset,false);
-
- x:=round(100*(duration*1000)/13);
- writes($09,x);
- zad:= round(duration*1000-40);
- if (zad < 0) then zad:=0;
- readframe(0,CameraWidth,0,CameraHeight);
-
- Result := true;
+imageReady := false;
+cameraState:=cameraWaiting;
+cameraState:=cameraExposing;
+blevel:=sblevel;
+cameraSetGain(gain);
+cameraSetOffset(offset,autoOffset);
+x:=round(100*(duration*1000)/13);
+writes($09,x);
+zad:= round(duration*1000-40);
+if (zad < 0) then zad:=0;
+readframe(0,CameraWidth,0,CameraHeight);
+Result := true;
 end;
 
 //Get camera state
@@ -359,19 +353,19 @@ end;
 //5 CameraError Camera error condition serious enough to prevent further operations (connection fail, etc.).
 function cameraGetCameraState : integer; stdcall; export;
 begin
- Result := cameraState;
+Result := cameraState;
 end;
 
 //Check ImageReady flag
 function cameraGetImageReady : WordBool; stdcall; export;
 begin
- Result := imageReady;
+Result := imageReady;
 end;
 
 //Get back pointer to ASCOM driver
 function cameraGetImage : dword; stdcall; export;
 begin
- Result := dword(@bufim2);
+Result := dword(@bufim2);
 end;
 
 exports cameraConnect;

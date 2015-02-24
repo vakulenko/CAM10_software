@@ -730,7 +730,7 @@ namespace ASCOM.cam10_v01
                         for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
                             for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
                             {
-                                pixelpoint = (ushort*)(zeropixelpoint + (j * (ccdWidth) + i));
+                                pixelpoint = (ushort*)(zeropixelpoint + (j*(ccdWidth) + i));
                                 cameraImageArray.SetValue(*pixelpoint, k);
                                 k++;
                             }

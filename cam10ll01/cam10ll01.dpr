@@ -44,7 +44,7 @@ adress:integer;
 co: posl;
 //image arrays
 bufim:array[0..(CameraWidth)*CameraHeight-1] of byte;
-bufim2:array[0..CameraWidth*CameraHeight-1] of integer;
+bufim2:array[0..CameraWidth*CameraHeight-1] of word;
 sx0,sdx,sy0,sdy:integer;
 kolbyte:integer;
 blevel:byte;
@@ -274,7 +274,6 @@ begin
    GetFTDeviceDescription(I);
    Dec(I);
   end;
-  FT_OP_flag:=true;
   if FT_flag then
    begin
     if Open_USB_Device_By_Serial_Number(FT_CAM10A,'CAM10A') <> FT_OK then FT_OP_flag := false;
