@@ -50,10 +50,10 @@ namespace ASCOM.cam10_v01
         internal static string onTopStateProfileName = "onTop";
         internal static string autoOffsetStateProfileName = "autoOffset";
         internal static string traceStateDefault = "false";
-        internal static string gainStateDefault = "0";
+        internal static string gainStateDefault = "63";
         internal static string offsetStateDefault = "0";
-        internal static string blevelStateDefault = "0";
-        internal static string onTopStateDefault = "false";
+        internal static string blevelStateDefault = "17";
+        internal static string onTopStateDefault = "true";
         internal static string autoOffsetStateDefault = "false";
         internal static bool traceState;
         internal static short gainState;
@@ -63,14 +63,14 @@ namespace ASCOM.cam10_v01
         internal static bool autoOffsetState;
 
         /// <summary>
-        /// Form, handle gain/offset settings
+        /// Form, handle gain/offset/blevel settings
         /// </summary>
         private camSettings settingsForm;
 
         /// <summary>
-        /// FilePath to settings XML (save gain/offset value)
+        /// Timer for long exposure handling
         /// </summary>
-        private string settingFilePath;
+        private System.Windows.Forms.Timer longExposureTimer;
 
         /// <summary>
         /// Private variable to hold the connected state
@@ -100,7 +100,7 @@ namespace ASCOM.cam10_v01
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
         static extern bool cameraIsConnected();
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-        static extern bool cameraStartExposure(double Duration, int gain, int offset, bool autoOffset, int blevel);
+        static extern bool cameraStartExposure(int StartY, int numY, double Duration, int gain, int offset, bool autoOffset, int blevel);
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
         static extern int cameraGetCameraState();
         [DllImport("cam10ll01.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
@@ -133,7 +133,11 @@ namespace ASCOM.cam10_v01
             settingsForm.blevel = blevelState;
             settingsForm.onTop = onTopState;
             settingsForm.autoOffset = autoOffsetState;
-            //tl.LogMessage("Camera", "Read gain/offset/blevel settings from file; gain=" + settingsForm.gain.ToString() + " offset=" + settingsForm.offset.ToString() + " autoOffset" + settingsForm.autoOffset.ToString() + " blevel=" + settingsForm.blevel.ToString() + " onTop="+settingsForm.onTop.ToString());
+            //Initialize long exposure timer (0.1s tick)
+            longExposureTimer = new System.Windows.Forms.Timer();
+            longExposureTimer.Interval = 100;
+            longExposureTimer.Tick += new EventHandler(longExposureTimerTick);
+            longExposureTimer.Enabled = false;
             tl.LogMessage("Camera", "Completed initialisation");
         }
 
@@ -151,11 +155,8 @@ namespace ASCOM.cam10_v01
         /// </summary>
         public void SetupDialog()
         {
-            // consider only showing the setup dialog if not connected
-            // or call a different dialog if connected
-            if (IsConnected)
-                System.Windows.Forms.MessageBox.Show("Already connected, just press OK");
-
+            // show camera settings form
+            if (IsConnected) return;           
             using (SetupDialogForm F = new SetupDialogForm())
             {
                 var result = F.ShowDialog();
@@ -211,6 +212,7 @@ namespace ASCOM.cam10_v01
             astroUtilities.Dispose();
             astroUtilities = null;
             settingsForm.Dispose();
+            longExposureTimer.Dispose();
         }
 
         public bool Connected
@@ -328,10 +330,21 @@ namespace ASCOM.cam10_v01
         private bool cameraImageReady = false;
         private Array cameraImageArray;
 
+        //long exposure props
+        private bool longExposureEnabled = false;
+        private CameraStates longExposureCameraState = CameraStates.cameraIdle;
+        private bool longExposureCameraImageReady = false;
+        private Array longExposureCameraImageArray;
+        private short longExposureGain, longExposureOffset, longExposureBlevel;
+        private bool longExposureAutoOffset = false;
+        private int longExposureSubCount;
+        private double longExposureSubDuration;
+        private bool longExposureSubStarted = false;
+
         public void AbortExposure()
         {
-            tl.LogMessage("AbortExposure", "Not implemented");
-            throw new MethodNotImplementedException("AbortExposure");
+            tl.LogMessage("AbortExposure", "Call this.StopExposure");
+            this.StopExposure();
         }
 
         public short BayerOffsetX
@@ -407,40 +420,49 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("CameraState Get", "Call cameraGetCameraState from cam10ll01.dll");
-                switch ((short)cameraGetCameraState())
+                
+                if (longExposureEnabled)
                 {
-                    case 0:
-                        {
-                            tl.LogMessage("CameraState Get", CameraStates.cameraIdle.ToString());
-                            return CameraStates.cameraIdle;
-                        }
-                    case 1:
-                        {
-                            tl.LogMessage("CameraState Get", CameraStates.cameraWaiting.ToString());
-                            return CameraStates.cameraWaiting;
-                        }
-                    case 2:
-                        {
-                            tl.LogMessage("CameraState Get", CameraStates.cameraExposing.ToString());
-                            return CameraStates.cameraExposing;
-                        }
-                    case 3:
-                        {
-                            tl.LogMessage("CameraState Get", CameraStates.cameraReading.ToString());
-                            return CameraStates.cameraReading;
-                        }
-                    case 4:
-                        {
-                            tl.LogMessage("CameraState Get", CameraStates.cameraDownload.ToString());
-                            return CameraStates.cameraDownload;
-                        }
-                    default:
-                        {
-                            tl.LogMessage("CameraState Get", CameraStates.cameraError.ToString());
-                            return CameraStates.cameraError;
-                        }
-                }                                
+                    tl.LogMessage("CameraState Get", "Long Exposure: " + longExposureCameraState.ToString());
+                    return longExposureCameraState;
+                }
+                else
+                {
+                    tl.LogMessage("CameraState Get", "Call cameraGetCameraState from cam10ll01.dll");
+                    switch ((short)cameraGetCameraState())
+                    {
+                        case 0:
+                            {                                
+                                tl.LogMessage("CameraState Get", CameraStates.cameraIdle.ToString());
+                                return CameraStates.cameraIdle;
+                            }
+                        case 1:
+                            {
+                                tl.LogMessage("CameraState Get", CameraStates.cameraWaiting.ToString());
+                                return CameraStates.cameraWaiting;
+                            }
+                        case 2:
+                            {
+                                tl.LogMessage("CameraState Get", CameraStates.cameraExposing.ToString());
+                                return CameraStates.cameraExposing;
+                            }
+                        case 3:
+                            {
+                                tl.LogMessage("CameraState Get", CameraStates.cameraReading.ToString());
+                                return CameraStates.cameraReading;
+                            }
+                        case 4:
+                            {
+                                tl.LogMessage("CameraState Get", CameraStates.cameraDownload.ToString());
+                                return CameraStates.cameraDownload;
+                            }
+                        default:
+                            {
+                                tl.LogMessage("CameraState Get", CameraStates.cameraError.ToString());
+                                return CameraStates.cameraError;
+                            }
+                    }                    
+                }
             }
         }
 
@@ -466,8 +488,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("CanAbortExposure Get", false.ToString());
-                return false;
+                tl.LogMessage("CanAbortExposure Get", "true");
+                return true;
             }
         }
 
@@ -520,8 +542,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("CanStopExposure Get", false.ToString());
-                return false;
+                tl.LogMessage("CanStopExposure Get", "true");
+                return true;
             }
         }
 
@@ -561,8 +583,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("ExposureMax Get Get", "2.0");
-                return 2.0;
+                tl.LogMessage("ExposureMax Get Get", "30.0");                
+                return 30.0;
             }
         }
 
@@ -670,53 +692,68 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                if (!cameraImageReady)
+                if (longExposureEnabled)
                 {
-                    tl.LogMessage("ImageArray Get", "Throwing InvalidOperationException because of a call to ImageArray before the first image has been taken!");
-                    throw new ASCOM.InvalidOperationException("Call to ImageArray before the first image has been taken!");
-                }
-
-                uint imagepoint;
-                //Get image pointer
-                tl.LogMessage("ImageArray Get", "Call cameraGetImage from cam10ll01.dll");
-                imagepoint = cameraGetImage();
-                unsafe
-                {
-                    ushort* zeropixelpoint, pixelpoint;
-                    //Set pixelpointers
-                    zeropixelpoint = pixelpoint = (ushort*)imagepoint;
-                    //Create image array
-                    cameraImageArray = Array.CreateInstance(typeof(int), cameraNumX * cameraNumY);
-                    int i, j, bini, binj, k=0, binSumm=0;
-
-                    if (cameraBinX == 1)
+                    if (!longExposureCameraImageReady)
                     {
-                        for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
-                            for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
-                            {
-                                pixelpoint = (ushort*)(zeropixelpoint + (j*(ccdWidth) + i));
-                                cameraImageArray.SetValue(*pixelpoint, k);
-                                k++;
-                            }
+                        tl.LogMessage("ImageArray Get", "Long Exposure: Throwing InvalidOperationException because of a call to ImageArray before the first image has been taken!");
+                        throw new ASCOM.InvalidOperationException("Long Exposure: Call to ImageArray before the first image has been taken!");
                     }
-                    else
+                    tl.LogMessage("ImageArray Get", "Long Exposure: Return longExposureCameraImageArray");
+                    return longExposureCameraImageArray;
+                }
+                else
+                {
+                    if (!cameraImageReady)
                     {
-                        for (j=cameraStartY*cameraBinY; j<(cameraStartY + cameraNumY)*cameraBinY;j=j+cameraBinY)
-                            for (i = cameraStartX * cameraBinX; i < (cameraStartX + cameraNumX) * cameraBinX; i = i + cameraBinX)
-                            {
-                                binSumm = 0;
-                                for (binj = 0; binj < cameraBinY; binj++)
-                                    for (bini = 0; bini < cameraBinX; bini++)
-                                    {
-                                        pixelpoint = (ushort*)(zeropixelpoint + ( (j+binj) * (ccdWidth) + (i+bini) ));
-                                        binSumm += *pixelpoint;
-                                    }
-                                cameraImageArray.SetValue(binSumm, k);
-                                k++;
-                            }
-                    }                    
-                }                                   
-                return cameraImageArray;
+                        tl.LogMessage("ImageArray Get", "Throwing InvalidOperationException because of a call to ImageArray before the first image has been taken!");
+                        throw new ASCOM.InvalidOperationException("Call to ImageArray before the first image has been taken!");
+                    }
+
+                    uint imagepoint;
+                    //Get image pointer
+                    tl.LogMessage("ImageArray Get", "Call cameraGetImage from cam10ll01.dll");
+                    imagepoint = cameraGetImage();
+                    unsafe
+                    {
+                        ushort* zeropixelpoint, pixelpoint;
+                        //Set pixelpointers
+                        zeropixelpoint = pixelpoint = (ushort*)imagepoint;
+                        //Create image array
+                        cameraImageArray = Array.CreateInstance(typeof(int), cameraNumX * cameraNumY);
+                        int i, j, bini, binj, k = 0, binSumm = 0;
+
+                        tl.LogMessage("ImageArray Get", "Binning:" + cameraBinX.ToString());
+                        if (cameraBinX == 1)
+                        {
+                            for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
+                                for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
+                                {
+                                    pixelpoint = (ushort*)(zeropixelpoint + (j * (ccdWidth) + i));
+                                    cameraImageArray.SetValue(*pixelpoint, k);
+                                    k++;
+                                }
+                        }
+                        else
+                        {                            
+                            for (j = cameraStartY * cameraBinY; j < (cameraStartY + cameraNumY) * cameraBinY; j = j + cameraBinY)
+                                for (i = cameraStartX * cameraBinX; i < (cameraStartX + cameraNumX) * cameraBinX; i = i + cameraBinX)
+                                {
+                                    binSumm = 0;
+                                    for (binj = 0; binj < cameraBinY; binj++)
+                                        for (bini = 0; bini < cameraBinX; bini++)
+                                        {
+                                            pixelpoint = (ushort*)(zeropixelpoint + ((j + binj) * (ccdWidth) + (i + bini)));
+                                            binSumm += *pixelpoint;
+                                        }
+                                    cameraImageArray.SetValue(binSumm, k);
+                                    k++;
+                                }
+                        }
+                    }
+                    tl.LogMessage("ImageArray Get", "Return cameraImageArray");
+                    return cameraImageArray;
+                }
             }
         }
 
@@ -738,10 +775,18 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("ImageReady Get", "Call cameraGetImageReady from cam10ll01.dll");
-                cameraImageReady = cameraGetImageReady();
-                tl.LogMessage("ImageReady Get", cameraImageReady.ToString());
-                return cameraImageReady;
+                if (longExposureEnabled)
+                {
+                    tl.LogMessage("ImageReady Get", "Long Exposure: Return longExposureCameraImageReady=" + longExposureCameraImageReady.ToString());
+                    return longExposureCameraImageReady;
+                }
+                else
+                {
+                    tl.LogMessage("ImageReady Get", "Call cameraGetImageReady from cam10ll01.dll");
+                    cameraImageReady = cameraGetImageReady();
+                    tl.LogMessage("ImageReady Get", cameraImageReady.ToString());
+                    return cameraImageReady;
+                }
             }
         }
 
@@ -787,8 +832,8 @@ namespace ASCOM.cam10_v01
         {
             get
             {
-                tl.LogMessage("MaxADU Get", (256 * cameraBinX * cameraBinX - 1).ToString());
-                return 256*cameraBinX*cameraBinX-1;
+                tl.LogMessage("MaxADU Get", "65535");                
+                return 65535;
             }
         }
 
@@ -939,7 +984,7 @@ namespace ASCOM.cam10_v01
         public void StartExposure(double Duration, bool Light)
         {
             //check exposure parameters
-            tl.LogMessage("StartExposure","Duration="+Duration.ToString()+" Light="+Light.ToString());
+            tl.LogMessage("StartExposure", "Duration=" + Duration.ToString() + " Light=" + Light.ToString());
             if ((Duration < ExposureMin) || (Duration > ExposureMax))
             {
                 tl.LogMessage("StartExposure", "InvalidValueException Duration must be in range [MinExposure;MaxExposure]");
@@ -954,23 +999,122 @@ namespace ASCOM.cam10_v01
             {
                 tl.LogMessage("StartExposure", "InvalidValueException (cameraStartY + cameraNumY) must be < (ccdHeight / cameraBinY)");
                 throw new InvalidValueException("StartExposure", (cameraStartY + cameraNumY).ToString(), "(cameraStartY + cameraNumY) must be < (ccdHeight / cameraBinY)");
-            }                       
+            }
             //Save parameters
             cameraLastExposureDuration = Duration;
-            exposureStart = DateTime.Now; 
+            exposureStart = DateTime.Now;
             gainState = settingsForm.gain;
             offsetState = settingsForm.offset;
             blevelState = settingsForm.blevel;
             onTopState = settingsForm.onTop;
             autoOffsetState = settingsForm.autoOffset;
-            //start exposure
-            tl.LogMessage("StartExposure", "Call cameraStartExposure from cam10ll01.dll, args: ");
-            tl.LogMessage("StartExposure",  " Duration=" + Duration.ToString() +                                             
-                                            " gain=" + settingsForm.gain.ToString() +
-                                            " offset=" + settingsForm.offset.ToString() +
-                                            " autoOffset=" + settingsForm.autoOffset.ToString() +
-                                            " blevel=" + settingsForm.blevel.ToString());
-            cameraStartExposure(Duration, settingsForm.gain, settingsForm.offset, settingsForm.autoOffset, settingsForm.blevel);
+            if (Duration > 2.0)
+            {
+                longExposureEnabled = true;
+                longExposureCameraState = CameraStates.cameraExposing;
+                longExposureCameraImageReady = false;
+                longExposureCameraImageArray = Array.CreateInstance(typeof(int), cameraNumX * cameraNumY);
+                int i;
+                for (i = 0; i < cameraNumX * cameraNumY; i++)
+                    longExposureCameraImageArray.SetValue(0, i);
+                longExposureSubCount = Convert.ToInt16(Duration/2.0)+1;
+                longExposureSubDuration =  Duration/longExposureSubCount;
+                tl.LogMessage("StartExposure", "Long Exposure Enabled, longExposureSubCount=" + longExposureSubCount.ToString() + 
+                                                                        " longExposureSubDuration= " + longExposureSubDuration.ToString()+
+                                                                        " gain=" + gainState.ToString() +
+                                                                        " offset=" + offsetState.ToString() +
+                                                                        " autoOffset=" + autoOffsetState.ToString() +
+                                                                        " blevel=" + blevelState.ToString());
+                longExposureTimer.Start();
+                return;
+            }
+            else
+            {
+                tl.LogMessage("StartExposure", "Long Exposure Disabled");
+                longExposureEnabled = false;                                
+                tl.LogMessage("StartExposure", "Call cameraStartExposure from cam10ll01.dll, args: ");
+                tl.LogMessage("StartExposure", " Duration=" + Duration.ToString() +
+                                                " gain=" + gainState.ToString() +
+                                                " offset=" + offsetState.ToString() +
+                                                " autoOffset=" + autoOffsetState.ToString() +
+                                                " blevel=" + blevelState.ToString());
+                cameraStartExposure(cameraStartY*cameraBinY,cameraNumY*cameraBinY,Duration, gainState, offsetState, autoOffsetState, blevelState);                
+            }        
+        } 
+
+        private void longExposureTimerTick(object sender, EventArgs e)
+        {
+            tl.LogMessage("longExposureTimerTick", "Tick");
+            if (cameraGetCameraState() == 0)
+            {
+                if ((!longExposureSubStarted)&&(longExposureSubCount>0))
+                {
+                    longExposureSubStarted = true;
+                    longExposureSubCount--;
+                    tl.LogMessage("longExposureTimerTick", "SubExposure started, remaining SubExpositions=" + longExposureSubCount.ToString());
+                    cameraStartExposure(cameraStartY*cameraBinY,cameraNumY*cameraBinY,longExposureSubDuration, gainState, offsetState, autoOffsetState, blevelState);
+                    return;
+                }
+                if (longExposureSubStarted)
+                {
+                    if (cameraGetImageReady())
+                    {
+                        tl.LogMessage("longExposureTimerTick", "SubExposure Finished, image reading");
+                        longExposureSubStarted = false;
+
+                        uint imagepoint;
+                        //Get image pointer
+                        imagepoint = cameraGetImage();
+                        unsafe
+                        {
+                            ushort* zeropixelpoint, pixelpoint;
+                            //Set pixelpointers
+                            zeropixelpoint = pixelpoint = (ushort*)imagepoint;
+                            //Create image array
+                            int i, j, k = 0, z;
+                            int bini, binj, binSumm = 0;
+
+                            if (cameraBinX == 1)
+                            {
+                                for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
+                                    for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
+                                    {
+                                        pixelpoint = (ushort*)(zeropixelpoint + (j * (ccdWidth) + i));
+                                        z = (*pixelpoint) + Convert.ToInt16(longExposureCameraImageArray.GetValue(k));
+                                        longExposureCameraImageArray.SetValue(z, k);
+                                        k++;
+                                    }
+                            }
+                            else
+                            {
+                                for (j = cameraStartY * cameraBinY; j < (cameraStartY + cameraNumY) * cameraBinY; j = j + cameraBinY)
+                                    for (i = cameraStartX * cameraBinX; i < (cameraStartX + cameraNumX) * cameraBinX; i = i + cameraBinX)
+                                    {
+                                        binSumm = 0;
+                                        for (binj = 0; binj < cameraBinY; binj++)
+                                            for (bini = 0; bini < cameraBinX; bini++)
+                                            {
+                                                pixelpoint = (ushort*)(zeropixelpoint + ((j + binj) * (ccdWidth) + (i + bini)));
+                                                binSumm += *pixelpoint;
+                                            }
+                                        z = binSumm + Convert.ToInt16(longExposureCameraImageArray.GetValue(k));
+                                        longExposureCameraImageArray.SetValue(z, k);
+                                        k++;
+                                    }
+                            }
+                        }
+  
+                        if (longExposureSubCount == 0)
+                        {
+                            tl.LogMessage("longExposureTimerTick", "Last SubExposure Finished, Stop longExposureTimer");
+                            longExposureCameraState = CameraStates.cameraIdle;
+                            longExposureCameraImageReady = true;
+                            longExposureTimer.Stop();
+                            return;
+                        }
+                    }
+                }
+            }
         }
 
         public int StartX
@@ -1013,8 +1157,8 @@ namespace ASCOM.cam10_v01
 
         public void StopExposure()
         {
-            tl.LogMessage("StopExposure", "Not implemented");
-            throw new MethodNotImplementedException("StopExposure");
+            tl.LogMessage("StopExposure", "For long exposure: Set longExposureSubCount = 0 and wait for last longExposureTimer tick");
+            if (longExposureEnabled)longExposureSubCount = 0;
         }
 
         #endregion

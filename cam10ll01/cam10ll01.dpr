@@ -323,7 +323,7 @@ begin
 end;
 
 //starts exposure
-function cameraStartExposure (duration : double; gain,offset : integer; autoOffset : WordBool; sblevel : integer) : WordBool; stdcall; export;
+function cameraStartExposure (startY,numY : integer; duration : double; gain,offset : integer; autoOffset : WordBool; sblevel : integer) : WordBool; stdcall; export;
 var x:integer;
 begin
   imageReady := false;
@@ -336,7 +336,7 @@ begin
   writes($09,x);
   zad:= round(duration*1000-40);
   if (zad < 0) then zad:=0;
-  readframe(0,CameraWidth,0,CameraHeight);
+  readframe(0,CameraWidth,startY,numY);
   Result := true;
 end;
 

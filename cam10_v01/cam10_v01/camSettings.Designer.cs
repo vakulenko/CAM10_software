@@ -202,7 +202,6 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(230, 202);
-            this.ControlBox = false;
             this.Controls.Add(this.autoOffsetCheckBox);
             this.Controls.Add(this.blevelNumUpDown);
             this.Controls.Add(this.offsetNumUpDown);
@@ -220,8 +219,11 @@
             this.MaximumSize = new System.Drawing.Size(238, 231);
             this.MinimumSize = new System.Drawing.Size(238, 231);
             this.Name = "camSettings";
+            this.ShowIcon = false;
+            this.ShowInTaskbar = false;
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.Text = "CAM10_settings";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.camSettings_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.gainTrackBar)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.offsetTrackBar)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.blevelTrackBar)).EndInit();

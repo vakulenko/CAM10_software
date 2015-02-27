@@ -139,5 +139,10 @@ namespace ASCOM.cam10_v01
         {
             blevelTrackBar.Value = blevel = (short) blevelNumUpDown.Value;
         }
+
+        private void camSettings_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            e.Cancel = true;
+        }
     }
 }

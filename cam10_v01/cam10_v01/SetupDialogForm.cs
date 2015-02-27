@@ -41,21 +41,23 @@ namespace ASCOM.cam10_v01
                 {
                     for (UInt32 i = 0; i < ftdiDeviceCount; i++)
                     {
-                        AvailableDevicesListBox.Items.Add("Device Index: " + i.ToString());
-                        AvailableDevicesListBox.Items.Add("Flags: " + String.Format("{0:x}", ftdiDeviceList[i].Flags));
-                        AvailableDevicesListBox.Items.Add("Type: " + ftdiDeviceList[i].Type.ToString());
-                        AvailableDevicesListBox.Items.Add("ID: " + String.Format("{0:x}", ftdiDeviceList[i].ID));
-                        AvailableDevicesListBox.Items.Add("Location ID: " + String.Format("{0:x}", ftdiDeviceList[i].LocId));
-                        AvailableDevicesListBox.Items.Add("Serial Number: " + ftdiDeviceList[i].SerialNumber.ToString());
-                        AvailableDevicesListBox.Items.Add("Description: " + ftdiDeviceList[i].Description.ToString());
-                        AvailableDevicesListBox.Items.Add("");
+                        if (ftdiDeviceList[i].SerialNumber.Contains("CAM10"))
+                        {
+                            AvailableDevicesListBox.Items.Add("Device Index: " + i.ToString());
+                            AvailableDevicesListBox.Items.Add("Flags: " + String.Format("{0:x}", ftdiDeviceList[i].Flags));
+                            AvailableDevicesListBox.Items.Add("Type: " + ftdiDeviceList[i].Type.ToString());
+                            AvailableDevicesListBox.Items.Add("ID: " + String.Format("{0:x}", ftdiDeviceList[i].ID));
+                            AvailableDevicesListBox.Items.Add("Location ID: " + String.Format("{0:x}", ftdiDeviceList[i].LocId));
+                            AvailableDevicesListBox.Items.Add("Serial Number: " + ftdiDeviceList[i].SerialNumber.ToString());
+                            AvailableDevicesListBox.Items.Add("Description: " + ftdiDeviceList[i].Description.ToString());
+                            AvailableDevicesListBox.Items.Add("");
+                        }
                     }
                 }
                 else throw new ASCOM.InvalidValueException("Error getting parameters from FTDI devices");
             }
             //Close device
             ftStatus = tempFtdiDevice.Close();
-
             // Initialise current values of user settings from the ASCOM Profile 
             chkTrace.Checked = Camera.traceState;
         }
@@ -63,7 +65,6 @@ namespace ASCOM.cam10_v01
         private void cmdOK_Click(object sender, EventArgs e) // OK button event handler
         {
             // Place any validation constraint checks here
-
             Camera.traceState = chkTrace.Checked;
         }
 
