@@ -42,7 +42,6 @@ cameraError = 5;
 var
 adress:integer;
 co: posl;
-//image arrays
 bufim:array[0..(CameraWidth)*CameraHeight-1] of byte;
 bufim2:array[0..CameraWidth*CameraHeight-1] of word;
 sdx,sy0,sdy:integer;
@@ -77,10 +76,10 @@ begin
   if buf = kolbyte then
     for y:=0 to sdy-1 do
       for x:=0 to sdx-1 do
-        bufim2[x+CameraWidth*(y+sy0)]:=bufim[x+y*(sdx+1)]
+        bufim2[x+CameraWidth*(y+sy0)]:=bufim[x+y*(sdx+0)]
   else bufa:=1;
   Get_USB_Device_Status(FT_CAM10A);
-  if FT_Q_Bytes > 0 then  Purge_USB_Device_OUT(FT_CAM10A);
+  if FT_Q_Bytes > 0 then Purge_USB_Device_OUT(FT_CAM10A);
   SetEvent(hev);
   cameraState:=cameraDownload;
   cameraState:=cameraIdle;
@@ -97,10 +96,10 @@ end;
 
 procedure starti;
 begin
-  FT_Out_Buffer[adress+0]:=portfirst or $2;
-  FT_Out_Buffer[adress+1]:=portfirst or $6;
-  FT_Out_Buffer[adress+2]:=portfirst or $4;
-  inc(adress,3);
+   FT_Out_Buffer[adress+0]:=portfirst or $2;
+   FT_Out_Buffer[adress+1]:=portfirst or $6;
+   FT_Out_Buffer[adress+2]:=portfirst or $4;
+   inc(adress,3);
 end;
 
 procedure bytei(val:byte);
@@ -126,11 +125,11 @@ end;
 
 procedure stopi;
 begin
-  FT_Out_Buffer[adress+0]:=portfirst or $4;
-  FT_Out_Buffer[adress+1]:=portfirst or $6;
-  FT_Out_Buffer[adress+2]:=portfirst or $2;
-  FT_Out_Buffer[adress+3]:=portfirst;
-  inc(adress,4);
+   FT_Out_Buffer[adress+0]:=portfirst or $4;
+   FT_Out_Buffer[adress+1]:=portfirst or $6;
+   FT_Out_Buffer[adress+2]:=portfirst or $2;
+   FT_Out_Buffer[adress+3]:=portfirst;
+   inc(adress,4);
 end;
 
 procedure writes(adr:byte;val:word);
@@ -157,13 +156,13 @@ begin
   WaitForSingleObject(hev,2000);
   if bufa < 1 then result:=true
   else
-    begin
-      Purge_USB_Device_OUT(FT_CAM10A);
-      Purge_USB_Device_IN(FT_CAM10A);
-      Purge_USB_Device_OUT(FT_CAM10B);
-      Purge_USB_Device_IN(FT_CAM10B);
-      result:=false;
-    end;
+  begin
+    Purge_USB_Device_OUT(FT_CAM10A);
+    Purge_USB_Device_IN(FT_CAM10A);
+    Purge_USB_Device_OUT(FT_CAM10B);
+    Purge_USB_Device_IN(FT_CAM10B);
+    result:=false;
+  end;
 end;
 
 function QueueStatus:integer;
@@ -186,8 +185,7 @@ begin
   writes($61,2*val);
   writes($63,2*val+blevel);
   writes($64,2*val+blevel);
-  if aut then writes($62,$0498)
-  else writes($62,$049d);
+  if aut then writes($62,$0498) else writes($62,$049d);
   Result :=true;
 end;
 
@@ -197,7 +195,7 @@ begin
   for adress:=0 to 99 do
     FT_Out_Buffer[adress]:=portfirst;
   for adress:=100 to 199 do
-    FT_Out_Buffer[adress]:=portfirst - $1;
+    FT_Out_Buffer[adress]:=portfirst - $1 ;
   for adress:=200 to 299 do
     FT_Out_Buffer[adress]:=portfirst;
   writp;
