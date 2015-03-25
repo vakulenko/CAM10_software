@@ -469,5 +469,10 @@ begin
  Memo1.Lines.Add('bias.bin записан')
 end;
 
+
+initialization
+
+
+
 end.
 

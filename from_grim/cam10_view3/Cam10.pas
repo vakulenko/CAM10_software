@@ -82,7 +82,6 @@ writes($03,dy-1);
 writes($0b,$1);
 kolbyte:=dx*dy;         //(dx+1)*dy;
 sdx:=dx;sdy:=dy;sy0:=y0;
-hev:=CreateEvent(nil,false,false,'');
 ComRead;
 WaitForSingleObject(hev,2000);
 if bufa < 1 then result:=true else
@@ -298,5 +297,10 @@ begin
  IsConnected := not FT_OP_flag;
  Result:= FT_OP_flag;
 end;
+
+
+initialization
+
+hev:=CreateEvent(nil,false,false,'');
 
 end.
