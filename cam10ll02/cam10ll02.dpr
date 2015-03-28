@@ -4,7 +4,7 @@
 // Date		    	Who	 Vers	  Description
 // -----------	---	-----	---------------------------------------------------------
 // 17-feb-2015  VSS 0.1     Initial
-// 25-mar-2015  VSS 0.2     Fixed bug with memory leak with hev event
+// 25-mar-2015  VSS 0.2     Fixed bug with memory leak with hev event, enhanced frame reading procedure
 // --------------------------------------------------------------------------------
 
 library cam10ll02;
@@ -13,7 +13,8 @@ uses
   MyD2XX,
   Classes,
   SysUtils,
-  Windows;
+  Windows,
+  SyncObjs;
 
 {$R *.res}
 
@@ -48,10 +49,12 @@ bufim2:array[0..CameraWidth*CameraHeight-1] of word;
 sdx,sy0,sdy:integer;
 kolbyte:integer;
 blevel:byte;
-hev:THandle;
+hev:TEvent;
 bufa:integer;
 zad:integer;
 kbyte:integer;
+//time to wait for frame
+dlit1:integer;
 
 //flag, camera connection state
 isConnected : boolean = false;
@@ -73,15 +76,16 @@ begin
   cameraState:=cameraReading;
   sleep(zad);
   bufa:=0;
-  buf:=Read_USB_Device_Buffer(FT_CAM10A,@bufim,kolbyte);kbyte:=buf;
+  buf:=Read_USB_Device_Buffer(FT_CAM10A,@bufim,kolbyte);
+  kbyte:=buf;
   if buf = kolbyte then
     for y:=0 to sdy-1 do
       for x:=0 to sdx-1 do
         bufim2[x+CameraWidth*(y+sy0)]:=bufim[x+y*(sdx+0)]
   else bufa:=1;
   Get_USB_Device_Status(FT_CAM10A);
-  if FT_Q_Bytes > 0 then Purge_USB_Device_OUT(FT_CAM10A);
-  SetEvent(hev);
+  if FT_Q_Bytes > 0 then Purge_USB_Device(FT_CAM10A,FT_PURGE_RX);
+  hev.SetEvent;
   cameraState:=cameraDownload;
   cameraState:=cameraIdle;
   imageReady:=true;
@@ -104,20 +108,19 @@ begin
 end;
 
 procedure bytei(val:byte);
-var
-i:integer;
+var i:integer;
 buf:byte;
 begin
   for i:=0 to 7 do
-    begin
-      if (val and $80) <> 0 then buf:=portfirst
-      else buf:=portfirst or $4;
-      val:=val shl 1;
-      FT_Out_Buffer[adress+0]:=buf;
-      FT_Out_Buffer[adress+1]:=buf or $2;
-      FT_Out_Buffer[adress+2]:=buf;
-      inc(adress,3);
-    end;
+  begin
+    if (val and $80) <> 0 then buf:=portfirst
+    else buf:=portfirst or $4;
+    val:=val shl 1;
+    FT_Out_Buffer[adress+0]:=buf;
+    FT_Out_Buffer[adress+1]:=buf or $2;
+    FT_Out_Buffer[adress+2]:=buf;
+    inc(adress,3);
+  end;
   FT_Out_Buffer[adress+0]:=portfirst;
   FT_Out_Buffer[adress+1]:=portfirst or $2;
   FT_Out_Buffer[adress+2]:=portfirst or $4;
@@ -151,16 +154,15 @@ begin
   writes($03,dy-1);
   writes($0b,$1);
   kolbyte:=dx*dy;
-  sdx:=dx;sdy:=dy;sy0:=y0;
+  sdx:=dx;
+  sdy:=dy;
+  sy0:=y0;
   ComRead;
-  WaitForSingleObject(hev,2000);
+  hev.WaitFor(dlit1);
   if bufa < 1 then result:=true
-  else
-  begin
-    Purge_USB_Device_OUT(FT_CAM10A);
-    Purge_USB_Device_IN(FT_CAM10A);
-    Purge_USB_Device_OUT(FT_CAM10B);
-    Purge_USB_Device_IN(FT_CAM10B);
+  else begin
+    Purge_USB_Device(FT_CAM10A, FT_PURGE_RX or FT_PURGE_TX);
+    Purge_USB_Device(FT_CAM10B, FT_PURGE_RX or FT_PURGE_TX);
     result:=false;
   end;
 end;
@@ -171,21 +173,22 @@ begin
   result:=FT_Q_Bytes;
 end;
 
-{Set camera gain, return bool result}
+//Set camera gain, return bool result
 function cameraSetGain (val : integer) : WordBool;
 begin
   writes($35,2*val);
   Result :=true;
 end;
 
-{Set camera offset, return bool result}
+//Set camera offset, return bool result
 function cameraSetOffset (val : smallint;aut:boolean) : WordBool;
 begin
   writes($60,2*val);
   writes($61,2*val);
   writes($63,2*val+blevel);
   writes($64,2*val+blevel);
-  if aut then writes($62,$0498) else writes($62,$049d);
+  if aut then writes($62,$0498)
+  else writes($62,$049d);
   Result :=true;
 end;
 
@@ -195,7 +198,7 @@ begin
   for adress:=0 to 99 do
     FT_Out_Buffer[adress]:=portfirst;
   for adress:=100 to 199 do
-    FT_Out_Buffer[adress]:=portfirst - $1 ;
+    FT_Out_Buffer[adress]:=portfirst - $1;
   for adress:=200 to 299 do
     FT_Out_Buffer[adress]:=portfirst;
   writp;
@@ -207,15 +210,15 @@ b,buf:byte;
 begin
   b:=$fe;
   for i:=0 to 7 do
-    begin
-      if (b and $80) <> 0 then buf:=portfirst
-      else buf:=portfirst+$4;
-      b:=2*b;
-      FT_Out_Buffer[adress+0]:=portfirst;
-      FT_Out_Buffer[adress+1]:=portfirst or $2;
-      FT_Out_Buffer[adress+2]:=buf;
-      inc(adress,3);
-    end;
+  begin
+    if (b and $80) <> 0 then buf:=portfirst
+    else buf:=portfirst+$4;
+    b:=2*b;
+    FT_Out_Buffer[adress+0]:=portfirst;
+    FT_Out_Buffer[adress+1]:=portfirst or $2;
+    FT_Out_Buffer[adress+2]:=buf;
+    inc(adress,3);
+  end;
   FT_Out_Buffer[adress+0]:=portfirst or val;
   FT_Out_Buffer[adress+1]:=portfirst or (val or $2);
   FT_Out_Buffer[adress+2]:=portfirst or val;
@@ -226,8 +229,7 @@ function reads(adr:byte): word;
 var ou:word;
 bufi:array[0..2047] of byte;
 begin
-  Purge_USB_Device_In(FT_CAM10B);
-  Purge_USB_Device_Out(FT_CAM10B);
+  Purge_USB_Device(FT_CAM10B, FT_PURGE_TX);
   adress:=0;
   starti;
   bytei($ba);
@@ -301,12 +303,12 @@ begin
   Result := isConnected;
 end;
 
-{Disconnect camera, return bool result}
+//Disconnect camera, return bool result
 function cameraDisconnect (): WordBool; stdcall; export;
 var FT_OP_flag : boolean;
 begin
   FT_OP_flag := true;
-  if Close_USB_Device(FT_CAM10A) <> FT_OK then FT_OP_flag := false;   //???????? ?????????
+  if Close_USB_Device(FT_CAM10A) <> FT_OK then FT_OP_flag := false;
   if Close_USB_Device(FT_CAM10B) <> FT_OK then FT_OP_flag := false;
   if (FT_OP_flag=false) then cameraState := cameraError
   else cameraState := cameraIdle;
@@ -330,6 +332,7 @@ begin
   blevel:=sblevel;
   cameraSetGain(gain);
   cameraSetOffset(offset,autoOffset);
+  dlit1:=round(duration*1000)+1000;
   x:=round(100*(duration*1000)/13);
   writes($09,x);
   zad:= round(duration*1000-40);
@@ -371,6 +374,6 @@ exports cameraGetImageReady;
 exports cameraGetImage;
 
 begin
-  hev:=CreateEvent(nil,false,false,'');
+  hev := TEvent.Create(nil, false, false, '');
 end.
 
