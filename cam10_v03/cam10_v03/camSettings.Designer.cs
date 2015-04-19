@@ -226,7 +226,7 @@
             // cameraStatusLabel
             // 
             this.cameraStatusLabel.AutoSize = true;
-            this.cameraStatusLabel.Location = new System.Drawing.Point(3, 189);
+            this.cameraStatusLabel.Location = new System.Drawing.Point(3, 187);
             this.cameraStatusLabel.Name = "cameraStatusLabel";
             this.cameraStatusLabel.Size = new System.Drawing.Size(132, 13);
             this.cameraStatusLabel.TabIndex = 46;
@@ -238,6 +238,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(231, 215);
             this.Controls.Add(this.panel);
+            this.MaximumSize = new System.Drawing.Size(239, 244);
+            this.MinimumSize = new System.Drawing.Size(239, 244);
             this.Name = "camSettings";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
