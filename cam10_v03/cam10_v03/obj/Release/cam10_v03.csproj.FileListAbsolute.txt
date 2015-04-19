@@ -1,0 +1,13 @@
+C:\share\dev\cam10_v03\cam10_v03\obj\Release\ResolveAssemblyReference.cache
+C:\share\dev\cam10_v03\cam10_v03\obj\Release\ASCOM.cam10_v03.Properties.Resources.resources
+C:\share\dev\cam10_v03\cam10_v03\obj\Release\ASCOM.cam10_v03.SetupDialogForm.resources
+C:\share\dev\cam10_v03\cam10_v03\obj\Release\GenerateResource-ResGen.read.1.tlog
+C:\share\dev\cam10_v03\cam10_v03\obj\Release\GenerateResource-ResGen.write.1.tlog
+C:\share\dev\cam10_v03\cam10_v03\bin\Release\cam10_v03.dll.config
+C:\share\dev\cam10_v03\cam10_v03\bin\Release\cam10_v03.dll
+C:\share\dev\cam10_v03\cam10_v03\bin\Release\cam10_v03.pdb
+C:\share\dev\cam10_v03\cam10_v03\bin\Release\FTD2XX_NET.dll
+C:\share\dev\cam10_v03\cam10_v03\bin\Release\FTD2XX_NET.xml
+C:\share\dev\cam10_v03\cam10_v03\obj\Release\cam10_v03.dll
+C:\share\dev\cam10_v03\cam10_v03\obj\Release\cam10_v03.pdb
+C:\share\dev\cam10_v03\cam10_v03\obj\Release\ASCOM.cam10_v03.camSettings.resources
