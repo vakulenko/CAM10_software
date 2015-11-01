@@ -1,0 +1,15 @@
+D:\dev\cam10_v04\cam10_v04\bin\Debug\cam10_v04.dll.config
+D:\dev\cam10_v04\cam10_v04\bin\Debug\cam10_v04.dll
+D:\dev\cam10_v04\cam10_v04\bin\Debug\cam10_v04.pdb
+D:\dev\cam10_v04\cam10_v04\bin\Debug\cam10_v04.tlb
+D:\dev\cam10_v04\cam10_v04\bin\Debug\FTD2XX_NET.dll
+D:\dev\cam10_v04\cam10_v04\bin\Debug\FTD2XX_NET.xml
+D:\dev\cam10_v04\cam10_v04\obj\Debug\ResolveAssemblyReference.cache
+D:\dev\cam10_v04\cam10_v04\obj\Debug\ASCOM.cam10_v04.camSettings.resources
+D:\dev\cam10_v04\cam10_v04\obj\Debug\ASCOM.cam10_v04.Properties.Resources.resources
+D:\dev\cam10_v04\cam10_v04\obj\Debug\ASCOM.cam10_v04.SetupDialogForm.resources
+D:\dev\cam10_v04\cam10_v04\obj\Debug\GenerateResource-ResGen.read.1.tlog
+D:\dev\cam10_v04\cam10_v04\obj\Debug\GenerateResource-ResGen.read.4.tlog
+D:\dev\cam10_v04\cam10_v04\obj\Debug\GenerateResource-ResGen.write.1.tlog
+D:\dev\cam10_v04\cam10_v04\obj\Debug\cam10_v04.dll
+D:\dev\cam10_v04\cam10_v04\obj\Debug\cam10_v04.pdb
