@@ -6,7 +6,7 @@
 // 16-feb-2015  VSS 0.1     Initial release
 // 25-mar-2015  VSS 0.2     Separate thread for long exposures
 // 18-apr-2015  VSS 0.3     FT_Read, FT_Write error handling
-// 01-nov-2015  VSS 0.4     Added histogram stretching and fixed compatibility with SharpCap 2.6
+// 01-nov-2015  VSS 0.4     Added histogram stretching and fixed compatibility with SharpCap 2.6, Nebulosity 4
 // --------------------------------------------------------------------------------
 
 #define Camera
@@ -315,6 +315,7 @@ namespace ASCOM.cam10_v04
         private const int ccdHeight = 1024;
         // Constant for the pixel physical dimension um
         private const double pixelSize = 5.2;
+        private const int maxPixelADU = 65535;
 
         // Initialise variables to hold values required for functionality tested by Conform
         private static int cameraNumX = ccdWidth;
@@ -327,7 +328,7 @@ namespace ASCOM.cam10_v04
         private double cameraLastExposureDuration = 0.0;
 
         private bool cameraImageReady = false;
-        private Array cameraImageArray;
+        private int[,] cameraImageArray;
 
         private int cameraError = 0;
 
@@ -335,7 +336,7 @@ namespace ASCOM.cam10_v04
         private static bool longExposureEnabled = false;
         private static CameraStates longExposureCameraState = CameraStates.cameraIdle;
         private static bool longExposureCameraImageReady = false;
-        private static Array longExposureCameraImageArray;
+        private static int[,] longExposureCameraImageArray;
         private static int longExposureSubCount;
         private static double longExposureSubDuration;
         private static bool longExposureSubStarted = false;
@@ -694,10 +695,10 @@ namespace ASCOM.cam10_v04
         }
 
         public object ImageArray
-        {            
+        {
             get
             {
-                const int NoHistogramStretch = 8;
+                const int NoHistogramStretch = 8;                
                 if (longExposureEnabled)
                 {
                     if (!longExposureCameraImageReady)
@@ -706,18 +707,15 @@ namespace ASCOM.cam10_v04
                         throw new ASCOM.InvalidOperationException("Long Exposure: Call to ImageArray before the first image has been taken!");
                     }
                     tl.LogMessage("ImageArray Get", "Long Exposure: Return longExposureCameraImageArray");
-                    settingsForm.enableControl = true;
-                    if (settingsForm.histStretch == NoHistogramStretch)
+                    if (settingsForm.histStretch != NoHistogramStretch)
                     {
                         int histStretchMult = (int)Math.Pow(2, settingsForm.histStretch - 8);
-                        int i, j, temp, k;
-                        k = 0;
-                        for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
-                            for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
+                        int i, j;
+                        for (j = 0; j < cameraNumY; j++)
+                            for (i = 0; i < cameraNumX; i++)
                             {
-                                temp = (int) longExposureCameraImageArray.GetValue(k);
-                                longExposureCameraImageArray.SetValue(temp * histStretchMult, k);
-                                k++;
+                                longExposureCameraImageArray[i, j] *= histStretchMult;
+                                if (longExposureCameraImageArray[i, j] > maxPixelADU) longExposureCameraImageArray[i, j] = maxPixelADU;
                             }
                     }
                     return longExposureCameraImageArray;
@@ -740,8 +738,9 @@ namespace ASCOM.cam10_v04
                         //Set pixelpointers
                         zeropixelpoint = pixelpoint = (ushort*)imagepoint;
                         //Create image array
-                        cameraImageArray = Array.CreateInstance(typeof(int), cameraNumX * cameraNumY);
-                        int i, j, bini, binj, k = 0, binSumm = 0;
+                        cameraImageArray = new int[cameraNumX, cameraNumY];
+                        int i, j, bini, binj, binSumm = 0;
+                        int ci, cj;
 
                         tl.LogMessage("ImageArray Get", "Binning:" + cameraBinX.ToString());
                         tl.LogMessage("ImageArray Get", "Histogram Stretching:" + histStretchState);
@@ -750,17 +749,26 @@ namespace ASCOM.cam10_v04
                             int histStretchMult = (int)Math.Pow(2, settingsForm.histStretch - 8);
                             if (cameraBinX == 1)
                             {
+                                cj = 0;
                                 for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
+                                {
+                                    ci = 0;
                                     for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
                                     {
                                         pixelpoint = (ushort*)(zeropixelpoint + (j * (ccdWidth) + i));
-                                        cameraImageArray.SetValue(*pixelpoint * histStretchMult, k);
-                                        k++;
+                                        cameraImageArray[ci, cj] = *pixelpoint * histStretchMult;
+                                        if (cameraImageArray[ci, cj] > maxPixelADU) cameraImageArray[ci, cj] = maxPixelADU;
+                                        ci++;
                                     }
+                                    cj++;
+                                }
                             }
                             else
                             {
+                                cj = 0;
                                 for (j = cameraStartY * cameraBinY; j < (cameraStartY + cameraNumY) * cameraBinY; j = j + cameraBinY)
+                                {
+                                    ci = 0;
                                     for (i = cameraStartX * cameraBinX; i < (cameraStartX + cameraNumX) * cameraBinX; i = i + cameraBinX)
                                     {
                                         binSumm = 0;
@@ -770,26 +778,38 @@ namespace ASCOM.cam10_v04
                                                 pixelpoint = (ushort*)(zeropixelpoint + ((j + binj) * (ccdWidth) + (i + bini)));
                                                 binSumm += *pixelpoint;
                                             }
-                                        cameraImageArray.SetValue(binSumm * histStretchMult, k);
-                                        k++;
+                                        cameraImageArray[ci, cj] = binSumm * histStretchMult;
+                                        if (cameraImageArray[ci, cj] > maxPixelADU) cameraImageArray[ci, cj] = maxPixelADU;
+                                        ci++;
                                     }
-                            }                                                            
+                                    cj++;
+                                }
+                            }
                         }
                         else
                         {
                             if (cameraBinX == 1)
                             {
+                                cj = 0;
                                 for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
+                                {
+                                    ci = 0;
                                     for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
                                     {
                                         pixelpoint = (ushort*)(zeropixelpoint + (j * (ccdWidth) + i));
-                                        cameraImageArray.SetValue(*pixelpoint, k);
-                                        k++;
+                                        cameraImageArray[ci, cj] = *pixelpoint;
+                                        if (cameraImageArray[ci, cj] > maxPixelADU) cameraImageArray[ci, cj] = maxPixelADU;
+                                        ci++;
                                     }
+                                    cj++;
+                                }
                             }
                             else
                             {
+                                cj = 0;
                                 for (j = cameraStartY * cameraBinY; j < (cameraStartY + cameraNumY) * cameraBinY; j = j + cameraBinY)
+                                {
+                                    ci = 0;
                                     for (i = cameraStartX * cameraBinX; i < (cameraStartX + cameraNumX) * cameraBinX; i = i + cameraBinX)
                                     {
                                         binSumm = 0;
@@ -799,9 +819,12 @@ namespace ASCOM.cam10_v04
                                                 pixelpoint = (ushort*)(zeropixelpoint + ((j + binj) * (ccdWidth) + (i + bini)));
                                                 binSumm += *pixelpoint;
                                             }
-                                        cameraImageArray.SetValue(binSumm, k);
-                                        k++;
+                                        cameraImageArray[ci, cj] = binSumm;
+                                        if (cameraImageArray[ci, cj] > maxPixelADU) cameraImageArray[ci, cj] = maxPixelADU;
+                                        ci++;
                                     }
+                                    cj++;
+                                }
                             }
                         }
                     }
@@ -886,8 +909,8 @@ namespace ASCOM.cam10_v04
         {
             get
             {
-                tl.LogMessage("MaxADU Get", "65535");
-                return 65535;
+                tl.LogMessage("MaxADU Get", maxPixelADU.ToString());
+                return maxPixelADU;
             }
         }
 
@@ -1065,14 +1088,14 @@ namespace ASCOM.cam10_v04
             histStretchState = settingsForm.histStretch;
             if (Duration > 2.0)
             {
-                settingsForm.enableControl = false;
                 longExposureEnabled = true;
                 longExposureCameraState = CameraStates.cameraExposing;
                 longExposureCameraImageReady = false;
-                longExposureCameraImageArray = Array.CreateInstance(typeof(int), cameraNumX * cameraNumY);
-                int i;
-                for (i = 0; i < cameraNumX * cameraNumY; i++)
-                    longExposureCameraImageArray.SetValue(0, i);
+                longExposureCameraImageArray = new int[cameraNumX, cameraNumY];
+                int i, j;
+                for (i = 0; i < cameraNumX; i++)
+                    for (j = 0; j < cameraNumY; j++)
+                        longExposureCameraImageArray[i, j] = 0;
                 longExposureSubCount = Convert.ToInt16(Duration / 2.0) + 1;
                 longExposureSubDuration = Duration / longExposureSubCount;
                 tl.LogMessage("StartExposure", "Long Exposure Enabled, longExposureSubCount=" + longExposureSubCount.ToString() +
@@ -1130,22 +1153,31 @@ namespace ASCOM.cam10_v04
                                 //Set pixelpointers
                                 zeropixelpoint = pixelpoint = (ushort*)imagepoint;
                                 //Create image array
-                                int i, j, k = 0, z;
+                                int i, j;
                                 int bini, binj, binSumm = 0;
+                                int ci, cj;
                                 if (cameraBinX == 1)
                                 {
+                                    cj = 0;
                                     for (j = cameraStartY; j < (cameraStartY + cameraNumY); j++)
+                                    {
+                                        ci = 0;
                                         for (i = cameraStartX; i < (cameraStartX + cameraNumX); i++)
                                         {
                                             pixelpoint = (ushort*)(zeropixelpoint + (j * (ccdWidth) + i));
-                                            z = (*pixelpoint) + Convert.ToInt16(longExposureCameraImageArray.GetValue(k));
-                                            longExposureCameraImageArray.SetValue(z, k);
-                                            k++;
+                                            longExposureCameraImageArray[ci, cj] += (*pixelpoint);
+                                            if (longExposureCameraImageArray[ci, cj] > maxPixelADU) longExposureCameraImageArray[ci, cj] = maxPixelADU;
+                                            ci++;
                                         }
+                                        cj++;
+                                    }
                                 }
                                 else
                                 {
+                                    cj = 0;
                                     for (j = cameraStartY * cameraBinY; j < (cameraStartY + cameraNumY) * cameraBinY; j = j + cameraBinY)
+                                    {
+                                        ci = 0;
                                         for (i = cameraStartX * cameraBinX; i < (cameraStartX + cameraNumX) * cameraBinX; i = i + cameraBinX)
                                         {
                                             binSumm = 0;
@@ -1155,10 +1187,12 @@ namespace ASCOM.cam10_v04
                                                     pixelpoint = (ushort*)(zeropixelpoint + ((j + binj) * (ccdWidth) + (i + bini)));
                                                     binSumm += *pixelpoint;
                                                 }
-                                            z = binSumm + Convert.ToInt16(longExposureCameraImageArray.GetValue(k));
-                                            longExposureCameraImageArray.SetValue(z, k);
-                                            k++;
+                                            longExposureCameraImageArray[ci, cj] += binSumm;
+                                            if (longExposureCameraImageArray[ci, cj] > maxPixelADU) longExposureCameraImageArray[ci, cj] = maxPixelADU;
+                                            ci++;
                                         }
+                                        cj++;
+                                    }
                                 }
                             }
                         }
@@ -1213,7 +1247,6 @@ namespace ASCOM.cam10_v04
         {
             tl.LogMessage("StopExposure", "For long exposure: Set longExposureSubCount = 0 and wait for last longExposureTimer tick");
             if (longExposureEnabled) longExposureSubCount = 0;
-            settingsForm.enableControl = true;
         }
 
         #endregion
