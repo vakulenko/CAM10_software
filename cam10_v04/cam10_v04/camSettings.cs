@@ -20,6 +20,10 @@ namespace ASCOM.cam10_v04
         const short minHistStretchBits = 8;
         const short maxHistStretchBits = 16;
 
+        const short CameraStatusOperational = 0;
+        const short CameraStatusWarning = 1;
+        const short CameraStatusFailed = 2;
+
         public camSettings()
         {
             InitializeComponent();
@@ -126,26 +130,24 @@ namespace ASCOM.cam10_v04
             {
                 switch (value)
                 {
-                    case 0:
+                    case CameraStatusOperational:
                         {
                             this.BackColor = SystemColors.Control;
                             this.cameraStatusLabel.Text = "Camera status: operational";
                             break;
                         };
-                    case 1:
+                    case CameraStatusWarning:
                         {
                             this.BackColor = System.Drawing.Color.Yellow;
                             this.cameraStatusLabel.Text = "Camera status: warning";
                             break;
                         };
-                    case 2:
-                    case 3:
+                    default:
                         {
                             this.BackColor = System.Drawing.Color.Yellow;
                             this.cameraStatusLabel.Text = "Camera status: failed";
                             break;
                         };
-                    default: { break; };
                 }
             }
         }

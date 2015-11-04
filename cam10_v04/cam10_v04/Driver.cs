@@ -269,10 +269,8 @@ namespace ASCOM.cam10_v04
         {
             get
             {
-                Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                string driverInfo = "Information about the driver itself. Version: 0.4";
-                tl.LogMessage("DriverInfo Get", driverInfo);
-                return driverInfo;
+                tl.LogMessage("DriverInfo Get", driverDescription);
+                return driverDescription;
             }
         }
 
@@ -316,6 +314,16 @@ namespace ASCOM.cam10_v04
         // Constant for the pixel physical dimension um
         private const double pixelSize = 5.2;
         private const int maxPixelADU = 65535;
+
+        //Max hardware sensor exposition at 12MHz
+        private const double maxSingleSensorExposition = 2.0;
+
+        private const int CameraStateIdle = 0;
+        private const int CameraStateWaiting = 1;
+        private const int CameraStateExposing = 2;
+        private const int CameraStateReading = 3;
+        private const int CameraStateDownloading = 4;
+        private const int CameraSteteError = 5;
 
         // Initialise variables to hold values required for functionality tested by Conform
         private static int cameraNumX = ccdWidth;
@@ -411,7 +419,7 @@ namespace ASCOM.cam10_v04
         {
             get
             {
-                tl.LogMessage("CCDTemperature Get Get", "Not implemented");
+                tl.LogMessage("CCDTemperature Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("CCDTemperature", false);
             }
         }
@@ -437,27 +445,27 @@ namespace ASCOM.cam10_v04
                     tl.LogMessage("CameraState Get", "Call cameraGetCameraState from cam10ll04.dll");
                     switch ((short)cameraGetCameraState())
                     {
-                        case 0:
+                        case CameraStateIdle:
                             {
                                 tl.LogMessage("CameraState Get", CameraStates.cameraIdle.ToString());
                                 return CameraStates.cameraIdle;
                             }
-                        case 1:
+                        case CameraStateWaiting:
                             {
                                 tl.LogMessage("CameraState Get", CameraStates.cameraWaiting.ToString());
                                 return CameraStates.cameraWaiting;
                             }
-                        case 2:
+                        case CameraStateExposing:
                             {
                                 tl.LogMessage("CameraState Get", CameraStates.cameraExposing.ToString());
                                 return CameraStates.cameraExposing;
                             }
-                        case 3:
+                        case CameraStateReading:
                             {
                                 tl.LogMessage("CameraState Get", CameraStates.cameraReading.ToString());
                                 return CameraStates.cameraReading;
                             }
-                        case 4:
+                        case CameraStateDownloading:
                             {
                                 tl.LogMessage("CameraState Get", CameraStates.cameraDownload.ToString());
                                 return CameraStates.cameraDownload;
@@ -557,12 +565,12 @@ namespace ASCOM.cam10_v04
         {
             get
             {
-                tl.LogMessage("CoolerOn Get Get", "Not implemented");
+                tl.LogMessage("CoolerOn Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("CoolerOn", false);
             }
             set
             {
-                tl.LogMessage("CoolerOn Set Get", "Not implemented");
+                tl.LogMessage("CoolerOn Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("CoolerOn", true);
             }
         }
@@ -571,7 +579,7 @@ namespace ASCOM.cam10_v04
         {
             get
             {
-                tl.LogMessage("CoolerPower Get Get", "Not implemented");
+                tl.LogMessage("CoolerPower Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("CoolerPower", false);
             }
         }
@@ -580,7 +588,7 @@ namespace ASCOM.cam10_v04
         {
             get
             {
-                tl.LogMessage("ElectronsPerADU Get Get", "Not implemented");
+                tl.LogMessage("ElectronsPerADU Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("ElectronsPerADU", false);
             }
         }
@@ -589,7 +597,7 @@ namespace ASCOM.cam10_v04
         {
             get
             {
-                tl.LogMessage("ExposureMax Get Get", "30.0");
+                tl.LogMessage("ExposureMax Get", "30.0");
                 return 30.0;
             }
         }
@@ -1086,7 +1094,7 @@ namespace ASCOM.cam10_v04
             onTopState = settingsForm.onTop;
             autoOffsetState = settingsForm.autoOffset;
             histStretchState = settingsForm.histStretch;
-            if (Duration > 2.0)
+            if (Duration > maxSingleSensorExposition)
             {
                 longExposureEnabled = true;
                 longExposureCameraState = CameraStates.cameraExposing;
@@ -1096,7 +1104,7 @@ namespace ASCOM.cam10_v04
                 for (i = 0; i < cameraNumX; i++)
                     for (j = 0; j < cameraNumY; j++)
                         longExposureCameraImageArray[i, j] = 0;
-                longExposureSubCount = Convert.ToInt16(Duration / 2.0) + 1;
+                longExposureSubCount = Convert.ToInt16(Duration / maxSingleSensorExposition) + 1;
                 longExposureSubDuration = Duration / longExposureSubCount;
                 tl.LogMessage("StartExposure", "Long Exposure Enabled, longExposureSubCount=" + longExposureSubCount.ToString() +
                                                                         " longExposureSubDuration= " + longExposureSubDuration.ToString() +
@@ -1129,7 +1137,7 @@ namespace ASCOM.cam10_v04
             tl.LogMessage("longExposureThread", "Started");
             while (longExposureSubCount > 0)
             {
-                if (cameraGetCameraState() == 0)
+                if (cameraGetCameraState() == CameraStateIdle)
                 {
                     if ((!longExposureSubStarted) && (longExposureSubCount > 0))
                     {
