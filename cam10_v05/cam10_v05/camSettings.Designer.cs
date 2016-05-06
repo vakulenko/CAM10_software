@@ -43,10 +43,10 @@
             this.blevelNumUpDown = new System.Windows.Forms.NumericUpDown();
             this.autoOffsetCheckBox = new System.Windows.Forms.CheckBox();
             this.panel = new System.Windows.Forms.Panel();
+            this.OverscanCheckBox = new System.Windows.Forms.CheckBox();
             this.histStretchUpDown = new System.Windows.Forms.NumericUpDown();
             this.histogramStretchlabel = new System.Windows.Forms.Label();
             this.cameraStatusLabel = new System.Windows.Forms.Label();
-            this.OverscanCheckBox = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.gainTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.offsetTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.blevelTrackBar)).BeginInit();
@@ -139,12 +139,12 @@
             this.minMaxBlevelLabel.Name = "minMaxBlevelLabel";
             this.minMaxBlevelLabel.Size = new System.Drawing.Size(31, 13);
             this.minMaxBlevelLabel.TabIndex = 39;
-            this.minMaxBlevelLabel.Text = "0..25";
+            this.minMaxBlevelLabel.Text = "0..24";
             // 
             // blevelTrackBar
             // 
             this.blevelTrackBar.Location = new System.Drawing.Point(3, 155);
-            this.blevelTrackBar.Maximum = 25;
+            this.blevelTrackBar.Maximum = 24;
             this.blevelTrackBar.Name = "blevelTrackBar";
             this.blevelTrackBar.Size = new System.Drawing.Size(219, 42);
             this.blevelTrackBar.TabIndex = 41;
@@ -185,7 +185,7 @@
             // 
             this.blevelNumUpDown.Location = new System.Drawing.Point(90, 133);
             this.blevelNumUpDown.Maximum = new decimal(new int[] {
-            25,
+            24,
             0,
             0,
             0});
@@ -230,6 +230,16 @@
             this.panel.Size = new System.Drawing.Size(228, 262);
             this.panel.TabIndex = 46;
             // 
+            // OverscanCheckBox
+            // 
+            this.OverscanCheckBox.AutoSize = true;
+            this.OverscanCheckBox.Location = new System.Drawing.Point(10, 217);
+            this.OverscanCheckBox.Name = "OverscanCheckBox";
+            this.OverscanCheckBox.Size = new System.Drawing.Size(72, 17);
+            this.OverscanCheckBox.TabIndex = 50;
+            this.OverscanCheckBox.Text = "Overscan";
+            this.OverscanCheckBox.UseVisualStyleBackColor = true;
+            // 
             // histStretchUpDown
             // 
             this.histStretchUpDown.Location = new System.Drawing.Point(122, 194);
@@ -270,16 +280,6 @@
             this.cameraStatusLabel.Size = new System.Drawing.Size(132, 13);
             this.cameraStatusLabel.TabIndex = 46;
             this.cameraStatusLabel.Text = "Camera status: operational";
-            // 
-            // OverscanCheckBox
-            // 
-            this.OverscanCheckBox.AutoSize = true;
-            this.OverscanCheckBox.Location = new System.Drawing.Point(10, 217);
-            this.OverscanCheckBox.Name = "OverscanCheckBox";
-            this.OverscanCheckBox.Size = new System.Drawing.Size(72, 17);
-            this.OverscanCheckBox.TabIndex = 50;
-            this.OverscanCheckBox.Text = "Overscan";
-            this.OverscanCheckBox.UseVisualStyleBackColor = true;
             // 
             // camSettings
             // 

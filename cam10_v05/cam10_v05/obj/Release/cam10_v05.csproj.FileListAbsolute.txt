@@ -22,4 +22,3 @@ E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\ASCOM.cam10_v05.SetupDialo
 E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\cam10_v05.csproj.GenerateResource.Cache
 E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\cam10_v05.dll
 E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\cam10_v05.pdb
-E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\cam10_v05.csprojResolveAssemblyReference.cache

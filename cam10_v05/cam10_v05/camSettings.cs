@@ -16,7 +16,7 @@ namespace ASCOM.cam10_v05
         const short minOffset = -63;
         const short maxOffset = 63;
         const short minBlevel = 0;
-        const short maxBlevel = 25;
+        const short maxBlevel = 24;
         const short minHistStretchBits = 8;
         const short maxHistStretchBits = 16;
 
@@ -29,10 +29,10 @@ namespace ASCOM.cam10_v05
             InitializeComponent();
         }
 
-        private short pGain = 0;
-        private short pOffset = 0;
-        private short pBlevel = 0;
-        private short pHistStretchBits = 8;
+        private short pGain = minGain;
+        private short pOffset = minOffset;
+        private short pBlevel = minBlevel;
+        private short pHistStretchBits = minHistStretchBits;
 
         public short gain
         {
