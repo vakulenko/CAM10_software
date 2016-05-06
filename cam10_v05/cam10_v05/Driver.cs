@@ -7,7 +7,7 @@
 // 25-mar-2015  VSS 0.2     Separate thread for long exposures
 // 18-apr-2015  VSS 0.3     FT_Read, FT_Write error handling
 // 01-nov-2015  VSS 0.4     Added histogram stretching and fixed compatibility with SharpCap 2.6, Nebulosity 4
-// 30-apr-2015  VSS 0.5     Oversampling support
+// 30-apr-2015  VSS 0.5     Overscan support
 // --------------------------------------------------------------------------------
 
 #define Camera
@@ -55,13 +55,15 @@ namespace ASCOM.cam10_v05
         internal static string onTopStateProfileName = "onTop";
         internal static string autoOffsetStateProfileName = "autoOffset";
         internal static string histStretchStateProfileName = "histogramStretchBits";
+        internal static string overscanStateProfileName = "overscan";
         internal static string traceStateDefault = "false";
-        internal static string gainStateDefault = "63";
+        internal static string gainStateDefault = "15";
         internal static string offsetStateDefault = "0";
         internal static string blevelStateDefault = "17";
         internal static string onTopStateDefault = "true";
         internal static string autoOffsetStateDefault = "false";
         internal static string histStretchStateDefault = "8";
+        internal static string overscanStateDefault = "false";
         internal static bool traceState;
         internal static short gainState;
         internal static short offsetState;
@@ -69,6 +71,7 @@ namespace ASCOM.cam10_v05
         internal static bool onTopState;
         internal static bool autoOffsetState;
         internal static short histStretchState;
+        internal static bool overscanState;
 
         /// <summary>
         /// Form, handle gain/offset/blevel settings
@@ -105,7 +108,7 @@ namespace ASCOM.cam10_v05
         [DllImport(LowLevelDll, CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
         static extern bool cameraIsConnected();
         [DllImport(LowLevelDll, CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-        static extern bool cameraStartExposure(int StartY, int numY, double Duration, int gain, int offset, bool autoOffset, int blevel);
+        static extern bool cameraStartExposure(int StartY, int numY, double Duration, int gain, int offset, bool autoOffset, int blevel, bool overscan);
         [DllImport(LowLevelDll, CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
         static extern int cameraGetCameraState();
         [DllImport(LowLevelDll, CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
@@ -141,6 +144,7 @@ namespace ASCOM.cam10_v05
             settingsForm.onTop = onTopState;
             settingsForm.autoOffset = autoOffsetState;
             settingsForm.histStretch = histStretchState;
+            settingsForm.overscan = overscanState;
             tl.LogMessage("Camera", "Completed initialisation");
         }
 
@@ -1097,6 +1101,7 @@ namespace ASCOM.cam10_v05
             onTopState = settingsForm.onTop;
             autoOffsetState = settingsForm.autoOffset;
             histStretchState = settingsForm.histStretch;
+            overscanState = settingsForm.overscan;
             if (Duration > maxSingleSensorExposition)
             {
                 longExposureEnabled = true;
@@ -1130,8 +1135,9 @@ namespace ASCOM.cam10_v05
                                                 " offset=" + offsetState.ToString() +
                                                 " autoOffset=" + autoOffsetState.ToString() +
                                                 " blevel=" + blevelState.ToString() +
-                                                " histStretch=" + histStretchState.ToString());
-                cameraStartExposure(cameraStartY * cameraBinY, cameraNumY * cameraBinY, Duration, gainState, offsetState, autoOffsetState, blevelState);
+                                                " histStretch=" + histStretchState.ToString() +
+                                                " overscan=" + overscanState.ToString());
+                cameraStartExposure(cameraStartY * cameraBinY, cameraNumY * cameraBinY, Duration, gainState, offsetState, autoOffsetState, blevelState, overscanState);
             }
         }
 
@@ -1147,7 +1153,7 @@ namespace ASCOM.cam10_v05
                         longExposureSubStarted = true;
                         longExposureSubCount--;
                         tl.LogMessage("longExposureThread", "SubExposure started, remaining SubExposition=" + longExposureSubCount.ToString());
-                        cameraStartExposure(cameraStartY * cameraBinY, cameraNumY * cameraBinY, longExposureSubDuration, gainState, offsetState, autoOffsetState, blevelState);
+                        cameraStartExposure(cameraStartY * cameraBinY, cameraNumY * cameraBinY, longExposureSubDuration, gainState, offsetState, autoOffsetState, blevelState, overscanState);
                     }
                     if (longExposureSubStarted)
                     {
@@ -1382,6 +1388,7 @@ namespace ASCOM.cam10_v05
                 onTopState = Convert.ToBoolean(driverProfile.GetValue(driverID, onTopStateProfileName, string.Empty, onTopStateDefault));
                 autoOffsetState = Convert.ToBoolean(driverProfile.GetValue(driverID, autoOffsetStateProfileName, string.Empty, autoOffsetStateDefault));
                 histStretchState = Convert.ToInt16(driverProfile.GetValue(driverID, histStretchStateProfileName, string.Empty, histStretchStateDefault));
+                overscanState = Convert.ToBoolean(driverProfile.GetValue(driverID, overscanStateProfileName, string.Empty, overscanStateDefault));
             }
         }
 
@@ -1400,6 +1407,7 @@ namespace ASCOM.cam10_v05
                 driverProfile.WriteValue(driverID, onTopStateProfileName, onTopState.ToString());
                 driverProfile.WriteValue(driverID, autoOffsetStateProfileName, autoOffsetState.ToString());
                 driverProfile.WriteValue(driverID, histStretchStateProfileName, histStretchState.ToString());
+                driverProfile.WriteValue(driverID, overscanStateProfileName, overscanState.ToString());
             }
         }
 

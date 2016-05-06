@@ -30,10 +30,13 @@ type
   end;
 
 const
-portfirst  = $f9;
+portfirst  = $fb;
+portfirst2 = $f9;
 CameraWidth = 1280;
 CameraHeight = 1024;
 razm = 50;
+pedestal = 32;
+pedestal2 = pedestal*32;
 
 //camera state consts
 cameraIdle = 0;
@@ -51,7 +54,8 @@ bufim:array[0..(CameraWidth)*CameraHeight-1] of byte;
 bufim2:array[0..CameraWidth*CameraHeight-1] of word;
 sdx,sy0,sdy:integer;
 kolbyte:integer;
-blevel:byte;
+kompstr:boolean;
+alevel,blevel:byte;
 hev:TEvent;
 bufa:integer;
 zad:integer;
@@ -78,17 +82,45 @@ end;
 procedure posl.Execute;
 var
 x,y,buf:integer;
+ex:integer;
+er:real;
+fx,fbuf:integer;
 begin
   cameraState:=cameraReading;
   sleep(zad);
   bufa:=0;
-  buf:=0;
-  if (not errorWriteFlag) then buf:=Read_USB_Device_Buffer(FT_CAM10A,@bufim,kolbyte);
+  if (not errorWriteFlag) then buf:=Read_USB_Device_Buffer(FT_CAM10A,@bufim,kolbyte)
+  else buf := 0;
   kbyte:=buf;
   if buf = kolbyte then
+  begin
+    fx:=0;
     for y:=0 to sdy-1 do
-      for x:=0 to sdx-1 do
-        bufim2[x+CameraWidth*(y+sy0)]:=bufim[x+y*(sdx+0)]
+      for x:=0 to 127 do
+        fx:=fx+bufim[x+y*(sdx+0)];
+    fx:=fx div sdy;
+    fx:=round(fx/32);
+    for y:=0 to sdy-1 do
+    begin
+      if kompstr then
+      begin
+        ex:=0;
+        for x:=0 to 127 do
+          ex:=ex+bufim[x+y*(sdx+0)];
+        er:=ex/32;
+        for x:=0 to sdx-1 do
+        begin
+          fbuf:=round(fx-er+4*bufim[x+y*(sdx+0)]);
+          if fbuf < 0 then fbuf:=0;
+          bufim2[x+CameraWidth*(y+sy0)]:=fbuf 
+        end;
+      end else
+      begin
+        for x:=0 to sdx-1 do
+          bufim2[x+CameraWidth*(y+sy0)]:=4*bufim[x+y*(sdx+0)]
+      end
+    end
+  end
   else begin
     bufa:=1;
     errorReadFlag:=true;
@@ -114,9 +146,9 @@ end;
 
 procedure starti;
 begin
-   FT_Out_Buffer[adress+0]:=portfirst or $2;
-   FT_Out_Buffer[adress+1]:=portfirst or $6;
-   FT_Out_Buffer[adress+2]:=portfirst or $4;
+   FT_Out_Buffer[adress+0]:=portfirst2 or $2;
+   FT_Out_Buffer[adress+1]:=portfirst2 or $6;
+   FT_Out_Buffer[adress+2]:=portfirst2 or $4;
    inc(adress,3);
 end;
 
@@ -126,25 +158,25 @@ buf:byte;
 begin
   for i:=0 to 7 do
   begin
-    if (val and $80) <> 0 then buf:=portfirst
-    else buf:=portfirst or $4;
+    if (val and $80) <> 0 then buf:=portfirst2
+    else buf:=portfirst2 or $4;
     val:=val shl 1;
     FT_Out_Buffer[adress+0]:=buf;
     FT_Out_Buffer[adress+1]:=buf or $2;
     FT_Out_Buffer[adress+2]:=buf;
     inc(adress,3);
   end;
-  FT_Out_Buffer[adress+0]:=portfirst;
-  FT_Out_Buffer[adress+1]:=portfirst or $2;
-  FT_Out_Buffer[adress+2]:=portfirst or $4;
+  FT_Out_Buffer[adress+0]:=portfirst2;
+  FT_Out_Buffer[adress+1]:=portfirst2 or $2;
+  FT_Out_Buffer[adress+2]:=portfirst2 or $4;
   inc(adress,3);
 end;
 
 procedure stopi;
 begin
-   FT_Out_Buffer[adress+0]:=portfirst or $4;
-   FT_Out_Buffer[adress+1]:=portfirst or $6;
-   FT_Out_Buffer[adress+2]:=portfirst or $2;
+   FT_Out_Buffer[adress+0]:=portfirst2 or $4;
+   FT_Out_Buffer[adress+1]:=portfirst2 or $6;
+   FT_Out_Buffer[adress+2]:=portfirst2 or $2;
    FT_Out_Buffer[adress+3]:=portfirst;
    inc(adress,4);
 end;
@@ -161,10 +193,13 @@ begin
   writp;
 end;
 
-function readframe(x0,dx,y0,dy:integer):boolean;
+function readframe(x0,dx,y0,dy:integer;komp:boolean):boolean;
 begin
+  kompstr:=komp;
   writes($01,12+y0);
+  writes($02,20+x0);
   writes($03,dy-1);
+  writes($04,dx-1);
   writes($0b,$1);
   kolbyte:=dx*dy;
   sdx:=dx;
@@ -191,14 +226,17 @@ end;
 
 //Set camera gain, return bool result
 function cameraSetGain (val : integer) : WordBool;
+const gain:array [1..15] of byte = ($08,$10,$18,$20,$54,$58,$5c,$60,$61,$62,$63,$64,$65,$66,$67);
 begin
-  writes($35,2*val);
+  if (val > 15) or (val < 0) then val:=15;
+  writes($35,gain[val]);
   Result :=true;
 end;
 
 //Set camera offset, return bool result
 function cameraSetOffset (val : smallint;aut:boolean) : WordBool;
 begin
+  alevel:=val;
   writes($60,2*val);
   writes($61,2*val);
   writes($63,2*val+blevel);
@@ -211,13 +249,22 @@ end;
 procedure resetchip;
 begin
   adress:=0;
-  for adress:=0 to 99 do
+  for adress := 0 to 99 do
     FT_Out_Buffer[adress]:=portfirst;
-  for adress:=100 to 199 do
+  for adress := 100 to 199 do
     FT_Out_Buffer[adress]:=portfirst - $1;
-  for adress:=200 to 299 do
+  for adress := 200 to 299 do
     FT_Out_Buffer[adress]:=portfirst;
   writp;
+end;
+
+function cameraSetBlevel (val : integer) : WordBool;
+begin
+  if (val > 24) or (val < 0) then val:=24;
+  blevel:=val;
+  writes($63,2*alevel+val);
+  writes($64,2*alevel+val);
+  Result :=true;
 end;
 
 procedure byteo(val:byte);
@@ -227,17 +274,17 @@ begin
   b:=$fe;
   for i:=0 to 7 do
   begin
-    if (b and $80) <> 0 then buf:=portfirst
-    else buf:=portfirst+$4;
+    if (b and $80) <> 0 then buf:=portfirst2
+    else buf:=portfirst2+$4;
     b:=2*b;
-    FT_Out_Buffer[adress+0]:=portfirst;
-    FT_Out_Buffer[adress+1]:=portfirst or $2;
+    FT_Out_Buffer[adress+0]:=portfirst2;
+    FT_Out_Buffer[adress+1]:=portfirst2 or $2;
     FT_Out_Buffer[adress+2]:=buf;
     inc(adress,3);
   end;
-  FT_Out_Buffer[adress+0]:=portfirst or val;
-  FT_Out_Buffer[adress+1]:=portfirst or (val or $2);
-  FT_Out_Buffer[adress+2]:=portfirst or val;
+  FT_Out_Buffer[adress+0]:=portfirst2 or val;
+  FT_Out_Buffer[adress+1]:=portfirst2 or (val or $2);
+  FT_Out_Buffer[adress+2]:=portfirst2 or val;
   inc(adress,3);
 end;
 
@@ -265,12 +312,13 @@ begin
       FT_Current_Baud:=100000;
       Set_USB_Device_BaudRate(FT_CAM10B);
       Set_USB_Device_LatencyTimer(FT_CAM10B,2);
-      Set_USB_Device_LatencyTimer(FT_CAM10A,2);
+      Set_USB_Device_LatencyTimer(FT_CAM10A,1);
       Set_USB_Device_TimeOuts(FT_CAM10A,250,100);
+      hev := TEvent.Create(nil, false, false, '');
       resetchip;
       writes($1e,$8100);
       writes($20,$0104);
-      CameraSetGain (63);
+      CameraSetGain (15);
       writes($60,0);
       writes($61,0);
       writes($63,blevel);
@@ -304,7 +352,7 @@ begin
 end;
 
 //starts exposure
-function cameraStartExposure (startY,numY : integer; duration : double; gain,offset : integer; autoOffset : WordBool; sblevel : integer) : WordBool; stdcall; export;
+function cameraStartExposure (startY,numY : integer; duration : double; gain,offset : integer; autoOffset : WordBool; sblevel : integer; overscan : WordBool) : WordBool; stdcall; export;
 var x:integer;
 begin
   imageReady := false;
@@ -314,12 +362,13 @@ begin
   blevel:=sblevel;
   cameraSetGain(gain);
   cameraSetOffset(offset,autoOffset);
+  cameraSetBlevel (blevel);
   dlit1:=round(duration*1000)+1000;
   x:=round(100*(duration*1000)/13);
   writes($09,x);
   zad:= round(duration*1000-40);
   if (zad < 0) then zad:=0;
-  readframe(0,CameraWidth,startY,numY);
+  readframe(0,CameraWidth,startY,numY,overscan);
   Result := true;
 end;
 

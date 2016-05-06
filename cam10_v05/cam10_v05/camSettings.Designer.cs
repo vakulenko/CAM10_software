@@ -46,6 +46,7 @@
             this.histStretchUpDown = new System.Windows.Forms.NumericUpDown();
             this.histogramStretchlabel = new System.Windows.Forms.Label();
             this.cameraStatusLabel = new System.Windows.Forms.Label();
+            this.OverscanCheckBox = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.gainTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.offsetTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.blevelTrackBar)).BeginInit();
@@ -59,9 +60,9 @@
             // gainTrackBar
             // 
             this.gainTrackBar.Location = new System.Drawing.Point(3, 22);
-            this.gainTrackBar.Maximum = 63;
+            this.gainTrackBar.Maximum = 15;
             this.gainTrackBar.Name = "gainTrackBar";
-            this.gainTrackBar.Size = new System.Drawing.Size(219, 45);
+            this.gainTrackBar.Size = new System.Drawing.Size(219, 42);
             this.gainTrackBar.TabIndex = 36;
             this.gainTrackBar.Scroll += new System.EventHandler(this.GainTrackBar_Scroll);
             // 
@@ -71,7 +72,7 @@
             this.offsetTrackBar.Maximum = 63;
             this.offsetTrackBar.Minimum = -63;
             this.offsetTrackBar.Name = "offsetTrackBar";
-            this.offsetTrackBar.Size = new System.Drawing.Size(219, 45);
+            this.offsetTrackBar.Size = new System.Drawing.Size(219, 42);
             this.offsetTrackBar.TabIndex = 35;
             this.offsetTrackBar.Scroll += new System.EventHandler(this.OffsetTrackBar_Scroll);
             // 
@@ -91,7 +92,7 @@
             this.minMaxGainLabel.Name = "minMaxGainLabel";
             this.minMaxGainLabel.Size = new System.Drawing.Size(31, 13);
             this.minMaxGainLabel.TabIndex = 33;
-            this.minMaxGainLabel.Text = "0..63";
+            this.minMaxGainLabel.Text = "0..15";
             // 
             // offsetLabel
             // 
@@ -136,16 +137,16 @@
             this.minMaxBlevelLabel.AutoSize = true;
             this.minMaxBlevelLabel.Location = new System.Drawing.Point(44, 135);
             this.minMaxBlevelLabel.Name = "minMaxBlevelLabel";
-            this.minMaxBlevelLabel.Size = new System.Drawing.Size(37, 13);
+            this.minMaxBlevelLabel.Size = new System.Drawing.Size(31, 13);
             this.minMaxBlevelLabel.TabIndex = 39;
-            this.minMaxBlevelLabel.Text = "0..255";
+            this.minMaxBlevelLabel.Text = "0..25";
             // 
             // blevelTrackBar
             // 
             this.blevelTrackBar.Location = new System.Drawing.Point(3, 155);
-            this.blevelTrackBar.Maximum = 255;
+            this.blevelTrackBar.Maximum = 25;
             this.blevelTrackBar.Name = "blevelTrackBar";
-            this.blevelTrackBar.Size = new System.Drawing.Size(219, 45);
+            this.blevelTrackBar.Size = new System.Drawing.Size(219, 42);
             this.blevelTrackBar.TabIndex = 41;
             this.blevelTrackBar.Scroll += new System.EventHandler(this.BlevelTrackBar_Scroll);
             // 
@@ -153,7 +154,7 @@
             // 
             this.gainNumUpDown.Location = new System.Drawing.Point(90, 2);
             this.gainNumUpDown.Maximum = new decimal(new int[] {
-            63,
+            15,
             0,
             0,
             0});
@@ -184,7 +185,7 @@
             // 
             this.blevelNumUpDown.Location = new System.Drawing.Point(90, 133);
             this.blevelNumUpDown.Maximum = new decimal(new int[] {
-            255,
+            25,
             0,
             0,
             0});
@@ -206,6 +207,7 @@
             // 
             // panel
             // 
+            this.panel.Controls.Add(this.OverscanCheckBox);
             this.panel.Controls.Add(this.histStretchUpDown);
             this.panel.Controls.Add(this.histogramStretchlabel);
             this.panel.Controls.Add(this.cameraStatusLabel);
@@ -225,7 +227,7 @@
             this.panel.Controls.Add(this.blevelLabel);
             this.panel.Location = new System.Drawing.Point(2, 1);
             this.panel.Name = "panel";
-            this.panel.Size = new System.Drawing.Size(228, 239);
+            this.panel.Size = new System.Drawing.Size(228, 262);
             this.panel.TabIndex = 46;
             // 
             // histStretchUpDown
@@ -263,19 +265,30 @@
             // cameraStatusLabel
             // 
             this.cameraStatusLabel.AutoSize = true;
-            this.cameraStatusLabel.Location = new System.Drawing.Point(3, 219);
+            this.cameraStatusLabel.Location = new System.Drawing.Point(3, 240);
             this.cameraStatusLabel.Name = "cameraStatusLabel";
             this.cameraStatusLabel.Size = new System.Drawing.Size(132, 13);
             this.cameraStatusLabel.TabIndex = 46;
             this.cameraStatusLabel.Text = "Camera status: operational";
             // 
+            // OverscanCheckBox
+            // 
+            this.OverscanCheckBox.AutoSize = true;
+            this.OverscanCheckBox.Location = new System.Drawing.Point(10, 217);
+            this.OverscanCheckBox.Name = "OverscanCheckBox";
+            this.OverscanCheckBox.Size = new System.Drawing.Size(72, 17);
+            this.OverscanCheckBox.TabIndex = 50;
+            this.OverscanCheckBox.Text = "Overscan";
+            this.OverscanCheckBox.UseVisualStyleBackColor = true;
+            // 
             // camSettings
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(231, 241);
+            this.ClientSize = new System.Drawing.Size(231, 265);
             this.Controls.Add(this.panel);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
+            this.MaximizeBox = false;
             this.Name = "camSettings";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
@@ -315,5 +328,6 @@
         private System.Windows.Forms.Label cameraStatusLabel;
         private System.Windows.Forms.NumericUpDown histStretchUpDown;
         private System.Windows.Forms.Label histogramStretchlabel;
+        private System.Windows.Forms.CheckBox OverscanCheckBox;
     }
 }

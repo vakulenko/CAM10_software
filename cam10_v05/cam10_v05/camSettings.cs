@@ -12,11 +12,11 @@ namespace ASCOM.cam10_v05
     public partial class camSettings : Form
     {
         const short minGain = 0;
-        const short maxGain = 63;
+        const short maxGain = 15;
         const short minOffset = -63;
         const short maxOffset = 63;
         const short minBlevel = 0;
-        const short maxBlevel = 255;
+        const short maxBlevel = 25;
         const short minHistStretchBits = 8;
         const short maxHistStretchBits = 16;
 
@@ -162,6 +162,18 @@ namespace ASCOM.cam10_v05
             {
                 autoOffsetCheckBox.Checked = value;
                 offsetTrackBar.Enabled = offsetNumUpDown.Enabled = !value;
+            }
+        }
+
+        public bool overscan
+        {
+            get
+            {
+                return OverscanCheckBox.Checked;
+            }
+            set 
+            {
+                OverscanCheckBox.Checked = value;
             }
         }
 

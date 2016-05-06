@@ -11,3 +11,15 @@ D:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\GenerateResource-ResGen.re
 D:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\GenerateResource-ResGen.write.1.tlog
 D:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\cam10_v05.dll
 D:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\cam10_v05.pdb
+E:\dev\CAM10_software\cam10_v05\cam10_v05\bin\Release\cam10_v05.dll.config
+E:\dev\CAM10_software\cam10_v05\cam10_v05\bin\Release\cam10_v05.dll
+E:\dev\CAM10_software\cam10_v05\cam10_v05\bin\Release\cam10_v05.pdb
+E:\dev\CAM10_software\cam10_v05\cam10_v05\bin\Release\FTD2XX_NET.dll
+E:\dev\CAM10_software\cam10_v05\cam10_v05\bin\Release\FTD2XX_NET.xml
+E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\ASCOM.cam10_v05.camSettings.resources
+E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\ASCOM.cam10_v05.Properties.Resources.resources
+E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\ASCOM.cam10_v05.SetupDialogForm.resources
+E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\cam10_v05.csproj.GenerateResource.Cache
+E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\cam10_v05.dll
+E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\cam10_v05.pdb
+E:\dev\CAM10_software\cam10_v05\cam10_v05\obj\Release\cam10_v05.csprojResolveAssemblyReference.cache
